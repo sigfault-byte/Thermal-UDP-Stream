@@ -1,0 +1,11 @@
+idf_component_register(SRCS "main.c"
+                            "led/led.c"
+                            "serial/serial.c"
+                            "camera/camera_i2c.c"
+                            "wifi/wifi_sta.c"
+                            "network/udp_sender.c"
+                            "protocol/thermal_packet.c"
+                            "camera/mlx90640_i2c_adapter.c"
+                            "camera/MLX90640_API.c"
+                            "utils/quantization.c"
+                       INCLUDE_DIRS ".")

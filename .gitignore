@@ -1,0 +1,19 @@
+# ESP-IDF build output
+firmware/hello_board/build/
+
+# Python
+**/__pycache__/
+*.pyc
+.venv/
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Personal notes
+notes/
+references/
+old/
