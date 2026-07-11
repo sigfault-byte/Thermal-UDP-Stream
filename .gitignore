@@ -17,3 +17,6 @@ firmware/hello_board/build/
 notes/
 references/
 old/
+
+# viewer c++/qt
+/viewer/build

@@ -6,7 +6,7 @@
 #include "driver/i2c.h"
 #include "esp_err.h"
 
-#include "camera_i2c.h"   // must expose I2C_PORT
+#include "camera_i2c.h"   // to expose I2C_PORT
 
 #define MLX90640_I2C_OK 0
 #define MLX90640_I2C_ERROR -1
