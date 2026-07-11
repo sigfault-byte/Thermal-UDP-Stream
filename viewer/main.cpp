@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QtQml>
 
 
 #include "models/frame_model.h"
@@ -52,6 +53,10 @@ int main(int argc, char *argv[])
                 frame.pixels
             );
 
+            thermalImageProvider->setScaleMode(
+                frameModel.scaleMode()
+                    );
+
             frameModel.setFrameId(
                 static_cast<int>(frame.frameId)
             );
@@ -63,6 +68,15 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(
         "frameModel",
         &frameModel
+    );
+
+    // We do not want QML to construct. It is from C++ and expose in frameModel
+    qmlRegisterUncreatableType<FrameModel>(
+        "PadawanViewer",
+        1,
+        0,
+        "FrameModel",
+        "FrameModel is created in C++ and exposed as a context property."
     );
 
     engine.loadFromModule(

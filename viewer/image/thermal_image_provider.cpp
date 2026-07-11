@@ -59,6 +59,12 @@ QVector<QRgb> ThermalImageProvider::createColorTable()
 
         // Store the RGB representation in the color table.
         colorTable.append(color.rgb());
+        // override the sentinel entries. Should be ok though
+        colorTable[0] =
+            qRgb(255, 0, 255);
+
+        colorTable[255] =
+            qRgb(255, 255, 255);
     }
 
     return colorTable;
@@ -81,26 +87,15 @@ void ThermalImageProvider::updateFrame(
         return;
     }
 
-    /*
-     * copy the payload one row at a time.
-     *
-     * do not assume that the memory occupied by one QImage row
-     * is always exactly equal to ImageWidthSome
-     * image formats may add padding at the end of each row.... !
-     */
-    for (int row = 0; row < ImageHeight; ++row)
+    switch (m_scaleMode)
     {
-        uchar *destinationRow =
-            m_image.scanLine(row);
+    case FrameModel::ScaleMode::Raw:
+        updateRawFrame(pixels);
+        break;
 
-        const char *sourceRow =
-            pixels.constData() + (row * ImageWidth);
-
-        std::memcpy(
-            destinationRow,
-            sourceRow,
-            ImageWidth
-        );
+    case FrameModel::ScaleMode::Auto:
+        updateAutoFrame(pixels);
+        break;
     }
 }
 
@@ -123,4 +118,149 @@ QImage ThermalImageProvider::requestImage(
     }
 
     return m_image;
+}
+
+// scale mode raw/ auto
+void ThermalImageProvider::setScaleMode(
+    FrameModel::ScaleMode mode
+)
+{
+    m_scaleMode = mode;
+}
+
+void ThermalImageProvider::updateRawFrame(
+    const QByteArray &pixels
+)
+{
+    for (int row = 0; row < ImageHeight; ++row)
+    {
+        uchar *destinationRow =
+            m_image.scanLine(row);
+
+        for (int column = 0; column < ImageWidth; ++column)
+        {
+            const int sourceColumn =
+                ImageWidth - 1 - column;
+
+            const int sourceIndex =
+                row * ImageWidth + sourceColumn;
+
+            destinationRow[column] =
+                static_cast<uchar>(
+                    pixels[sourceIndex]
+                );
+        }
+    }
+}
+
+void ThermalImageProvider::updateAutoFrame(
+    const QByteArray &pixels
+)
+{
+    quint8 minimum = 254;
+    quint8 maximum = 1;
+
+    bool foundValidPixel = false;
+
+    /*
+     * First pass:
+     * find the minimum and maximum valid thermal values.
+     *
+     * Values 0 and 255 are reserved and do not participate
+     * in the display range calculation.
+     */
+    for (qsizetype index = 0; index < pixels.size(); ++index)
+    {
+        const quint8 value =
+            static_cast<quint8>(pixels[index]);
+
+        if (
+            value == InvalidValue
+            || value == ReservedValue
+        )
+        {
+            continue;
+        }
+
+        foundValidPixel = true;
+
+        if (value < minimum)
+            minimum = value;
+
+        if (value > maximum)
+            maximum = value;
+    }
+
+    /*
+     * If no valid values exist, preserve the payload directly.
+     */
+    if (!foundValidPixel)
+    {
+        updateRawFrame(pixels);
+        return;
+    }
+
+    /*
+     * If every valid pixel has the same value, there is no range
+     * to stretch.
+     */
+    const bool flatFrame =
+        minimum == maximum;
+
+    /*
+     * Second pass:
+     * mirror each row horizontally and map values into [1, 254].
+     */
+    for (int row = 0; row < ImageHeight; ++row)
+    {
+        uchar *destinationRow =
+            m_image.scanLine(row);
+
+        for (int column = 0; column < ImageWidth; ++column)
+        {
+            // Read from the opposite horizontal position.
+            const int sourceColumn =
+                ImageWidth - 1 - column;
+
+            const int sourceIndex =
+                row * ImageWidth + sourceColumn;
+
+            const quint8 value =
+                static_cast<quint8>(
+                    pixels[sourceIndex]
+                );
+
+            // Preserve reserved protocol values.
+            if (
+                value == InvalidValue
+                || value == ReservedValue
+            )
+            {
+                destinationRow[column] = value;
+                continue;
+            }
+
+            if (flatFrame)
+            {
+                destinationRow[column] = 127;
+                continue;
+            }
+
+            /*
+             * Stretch valid values from [minimum, maximum]
+             * into palette indices [1, 254].
+             */
+            const int numerator =
+                (value - minimum) * 253;
+
+            const int denominator =
+                maximum - minimum;
+
+            const int mappedValue =
+                1 + (numerator / denominator);
+
+            destinationRow[column] =
+                static_cast<uchar>(mappedValue);
+        }
+    }
 }

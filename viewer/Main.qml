@@ -44,7 +44,7 @@ Window {
 
                 imageSource:
                     "image://thermal/frame?revision="
-                    // also send the object
+                    // also send image revision property
                     + frameModel.imageRevision
             }
 
@@ -52,10 +52,18 @@ Window {
             StatisticsPanel {
                 Layout.preferredWidth: 300
                 Layout.fillHeight: true
+
+                rollingScale:
+                    frameModel.scaleMode === FrameModel.Auto
+
+                onScaleModeRequested: autoEnabled => {
+                    frameModel.scaleMode =
+                        autoEnabled ? FrameModel.Auto : FrameModel.Raw
+                }
             }
         }
 
-        //right side
+        //last row
         // Future chart / packet timing area.
         TimingPanel {
             Layout.fillWidth: true

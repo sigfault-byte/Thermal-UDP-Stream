@@ -35,6 +35,7 @@ qt_add_qml_module(padawan_viewer
         qml/ThermalPanel.qml
         qml/StatisticsPanel.qml
         qml/TimingPanel.qml
+        qml/RawRollingSwitch.qml
 )
 
 target_link_libraries(padawan_viewer

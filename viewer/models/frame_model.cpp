@@ -34,3 +34,19 @@ void FrameModel::notifyImageUpdated()
     ++m_imageRevision;
     emit imageRevisionChanged();
 }
+
+FrameModel::ScaleMode FrameModel::scaleMode() const
+{
+    return m_scaleMode;
+}
+
+void FrameModel::setScaleMode(ScaleMode mode)
+{
+    // Do not emit a change signal when the state is unchanged.
+    if (m_scaleMode == mode)
+        return;
+
+    m_scaleMode = mode;
+
+    emit scaleModeChanged();
+}

@@ -4,6 +4,9 @@ import QtQuick.Layouts
 Rectangle {
     id : root
 
+    required property bool rollingScale
+    signal scaleModeRequested(bool autoEnabled)
+
     color: "#18181f"
     radius: 8
 
@@ -48,6 +51,13 @@ Rectangle {
             color: "white"
             font.pixelSize: 18
             font.bold: true
+        }
+
+        RawRollingSwitch {
+            rolling: root.rollingScale
+            onModeRequested: rolling => {
+                root.scaleModeRequested(rolling)
+            }
         }
 
         Text {
