@@ -22,3 +22,15 @@ void FrameModel::setFrameId(int frameId)
     // Tell Qt that the frameId property changed.
     emit frameIdChanged();
 }
+
+int FrameModel::imageRevision() const
+{
+    // not a frame or timestamp -> this is for QML to use a different image url
+    return m_imageRevision;
+}
+
+void FrameModel::notifyImageUpdated()
+{
+    ++m_imageRevision;
+    emit imageRevisionChanged();
+}

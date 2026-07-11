@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QUdpSocket>
+#include "protocol/thermal_frame.h"
 
 class UdpReceiver : public QObject
 {
@@ -23,6 +24,10 @@ public:
     // rather than private slots:
     // marking it as a slot is still useful documentation:
     // function exists specifically as a signal receiver.
+
+    signals:
+        // announce that one valid thermal frame was decoded.
+        void thermalFrameReceived(const ThermalFrame &frame);
 
 private slots:
     // called whenever one or more UDP datagrams are waiting.

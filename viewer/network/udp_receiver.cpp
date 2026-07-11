@@ -80,6 +80,8 @@ void UdpReceiver::processPendingDatagrams()
             << frame.timestampMs
             << "pixels"
             << frame.pixels.size();
+        // send the meaningful decoded frame to the rest of the application
+        emit thermalFrameReceived(frame);
     }
 }
 

@@ -5,18 +5,60 @@
 
 #include "models/frame_model.h"
 #include "network/udp_receiver.h"
+#include "image/thermal_image_provider.h"
 
 
 int main(int argc, char *argv[])
 {
-    QGuiApplication app(argc, argv);
+    QGuiApplication padawan(argc, argv);
 
     FrameModel frameModel;
-
-    // Listen for UDP datagrams on local port 5005.
     UdpReceiver udpReceiver(5005);
 
     QQmlApplicationEngine engine;
+
+    /*
+     * The QML engine takes ownership of this provider.
+     *
+     * QML will access it using URLs beginning with:
+     *
+     *     image://thermal/
+     */
+    auto *thermalImageProvider =
+        new ThermalImageProvider();
+
+    engine.addImageProvider(
+        "thermal",
+        thermalImageProvider
+    );
+
+    /*
+     * Whenever UdpReceiver decodes a valid thermal frame:
+     *
+     * 1. Update the provider's indexed image.
+     * 2. Update the visible frame ID.
+     * 3. Notify QML that it should request the image again.
+     */
+    QObject::connect(
+        &udpReceiver,
+        &UdpReceiver::thermalFrameReceived,
+        &frameModel,
+        [
+            &frameModel,
+            thermalImageProvider
+        ](const ThermalFrame &frame)
+        {
+            thermalImageProvider->updateFrame(
+                frame.pixels
+            );
+
+            frameModel.setFrameId(
+                static_cast<int>(frame.frameId)
+            );
+
+            frameModel.notifyImageUpdated();
+        }
+    );
 
     engine.rootContext()->setContextProperty(
         "frameModel",
@@ -28,8 +70,31 @@ int main(int argc, char *argv[])
         "Main"
     );
 
-    return app.exec();
+    return padawan.exec();
 }
+
+// int main(int argc, char *argv[])
+// {
+//     QGuiApplication app(argc, argv);
+
+//     FrameModel frameModel;
+//     // Listen for UDP datagrams on local port 5005.
+//     UdpReceiver udpReceiver(5005);
+
+//     QQmlApplicationEngine engine;
+
+//     engine.rootContext()->setContextProperty(
+//         "frameModel",
+//         &frameModel
+//     );
+
+//     engine.loadFromModule(
+//         "PadawanViewer",
+//         "Main"
+//     );
+
+//     return app.exec();
+// }
 // int main(int argc, char *argv[])
 // {
 //     QGuiApplication app(argc, argv);
