@@ -7,6 +7,7 @@
 #include "models/frame_model.h"
 #include "network/udp_receiver.h"
 #include "image/thermal_image_provider.h"
+#include "analysis/frame_statistics_calculator.h"
 
 
 int main(int argc, char *argv[])
@@ -49,13 +50,25 @@ int main(int argc, char *argv[])
             thermalImageProvider
         ](const ThermalFrame &frame)
         {
+            const FrameStatistics statistics =
+                FrameStatisticsCalculator::calculate(
+                    frame.pixels
+            );
+            frameModel.setTimestampMs(
+                frame.timestampMs
+            );
+            frameModel.setStatistics(
+                statistics
+            );
+
             thermalImageProvider->updateFrame(
-                frame.pixels
+                frame.pixels,
+                statistics
             );
 
             thermalImageProvider->setScaleMode(
                 frameModel.scaleMode()
-                    );
+            );
 
             frameModel.setFrameId(
                 static_cast<int>(frame.frameId)

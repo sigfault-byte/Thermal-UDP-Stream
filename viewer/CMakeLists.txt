@@ -24,6 +24,10 @@ qt_add_executable(padawan_viewer
 
     image/thermal_image_provider.cpp
     image/thermal_image_provider.h
+
+    analysis/frame_statistics.h
+    analysis/frame_statistics_calculator.h
+    analysis/frame_statistics_calculator.cpp
 )
 
 qt_add_qml_module(padawan_viewer

@@ -7,6 +7,7 @@
 #include <QVector>
 
 #include "models/frame_model.h"
+#include "analysis/frame_statistics.h"
 
 class ThermalImageProvider : public QQuickImageProvider
 {
@@ -18,7 +19,10 @@ public:
 
     // replace the currently displayed image using one exact
     // 32 × 24 thermal payload :d
-    void updateFrame(const QByteArray &pixels);
+    void updateFrame(
+        const QByteArray &pixels,
+        const FrameStatistics &statistics
+    );
 
     // called by the QML engine when an Image requests:
     //
@@ -43,7 +47,10 @@ private:
     static QVector<QRgb> createColorTable();
 
     void updateRawFrame(const QByteArray &pixels);
-    void updateAutoFrame(const QByteArray &pixels);
+    void updateAutoFrame(
+        const QByteArray &pixels,
+        const FrameStatistics &statistics
+    );
 
     // The most recently received thermal frame represented
     // as an indexed-color image.

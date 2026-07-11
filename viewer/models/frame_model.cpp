@@ -50,3 +50,64 @@ void FrameModel::setScaleMode(ScaleMode mode)
 
     emit scaleModeChanged();
 }
+
+double FrameModel::minimumCelsius() const
+{
+    return m_statistics.minimumCelsius;
+}
+
+double FrameModel::maximumCelsius() const
+{
+    return m_statistics.maximumCelsius;
+}
+
+double FrameModel::meanCelsius() const
+{
+    return m_statistics.meanCelsius;
+}
+
+int FrameModel::inRangePixelCount() const
+{
+    return m_statistics.inRangePixelCount;
+}
+
+int FrameModel::belowRangePixelCount() const
+{
+    return m_statistics.belowRangePixelCount;
+}
+
+int FrameModel::aboveRangePixelCount() const
+{
+    return m_statistics.aboveRangePixelCount;
+}
+
+quint32 FrameModel::timestampMs() const
+{
+    return m_timestampMs;
+}
+
+void FrameModel::setTimestampMs(
+    quint32 timestampMs
+)
+{
+    if (m_timestampMs == timestampMs)
+        return;
+
+    m_timestampMs = timestampMs;
+
+    emit timestampMsChanged();
+}
+
+void FrameModel::setStatistics(
+    const FrameStatistics &statistics
+)
+{
+    /*
+     * For now, emit once for every received frame.
+     * statistics will normally differ between frames anyway,
+     * and one shared signal updates all dependent QML bindings.
+     */
+    m_statistics = statistics;
+
+    emit statisticsChanged();
+}

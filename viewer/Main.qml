@@ -53,12 +53,22 @@ Window {
                 Layout.preferredWidth: 300
                 Layout.fillHeight: true
 
-                rollingScale:
+                minimumCelsius: frameModel.minimumCelsius
+                maximumCelsius: frameModel.maximumCelsius
+                meanCelsius: frameModel.meanCelsius
+
+                inRangePixelCount: frameModel.inRangePixelCount
+                belowRangePixelCount: frameModel.belowRangePixelCount
+                aboveRangePixelCount: frameModel.aboveRangePixelCount
+
+                autoScale:
                     frameModel.scaleMode === FrameModel.Auto
 
                 onScaleModeRequested: autoEnabled => {
                     frameModel.scaleMode =
-                        autoEnabled ? FrameModel.Auto : FrameModel.Raw
+                        autoEnabled
+                            ? FrameModel.Auto
+                            : FrameModel.Raw
                 }
             }
         }

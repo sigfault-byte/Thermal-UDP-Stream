@@ -3,6 +3,8 @@
 
 #include <QObject>
 
+#include "analysis/frame_statistics.h"
+
 class FrameModel : public QObject
 {
     Q_OBJECT
@@ -26,6 +28,49 @@ class FrameModel : public QObject
         NOTIFY scaleModeChanged
     )
 
+    //statistics
+    Q_PROPERTY(
+        double minimumCelsius
+        READ minimumCelsius
+        NOTIFY statisticsChanged
+    )
+
+    Q_PROPERTY(
+        double maximumCelsius
+        READ maximumCelsius
+        NOTIFY statisticsChanged
+    )
+
+    Q_PROPERTY(
+        double meanCelsius
+        READ meanCelsius
+        NOTIFY statisticsChanged
+    )
+
+    Q_PROPERTY(
+        int inRangePixelCount
+        READ inRangePixelCount
+        NOTIFY statisticsChanged
+    )
+
+    Q_PROPERTY(
+        int belowRangePixelCount
+        READ belowRangePixelCount
+        NOTIFY statisticsChanged
+    )
+
+    Q_PROPERTY(
+        int aboveRangePixelCount
+        READ aboveRangePixelCount
+        NOTIFY statisticsChanged
+    )
+
+    Q_PROPERTY(
+        quint32 timestampMs
+        READ timestampMs
+        NOTIFY timestampMsChanged
+    )
+
 public:
     // The enum belongs to FrameModel and is exposed to Qt/QML.
         enum class ScaleMode
@@ -34,7 +79,7 @@ public:
             Auto
         };
 // Register it for qt
-        Q_ENUM(ScaleMode)
+    Q_ENUM(ScaleMode)
 
 
     explicit FrameModel(QObject *parent = nullptr);
@@ -53,6 +98,20 @@ public:
     ScaleMode scaleMode() const;
     void setScaleMode(ScaleMode mode);
 
+    double minimumCelsius() const;
+    double maximumCelsius() const;
+    double meanCelsius() const;
+
+    int inRangePixelCount() const;
+    int belowRangePixelCount() const;
+    int aboveRangePixelCount() const;
+
+    quint32 timestampMs() const;
+    void setTimestampMs(quint32 timestampMs);
+
+    // Replace all frame statistics and notify QML.
+    void setStatistics(const FrameStatistics &statistics);
+
 signals:
     // Emitted whenever frameId changes.
     // QML listens to this signal and updates dependent bindings.
@@ -60,11 +119,17 @@ signals:
     void imageRevisionChanged();
     void scaleModeChanged();
 
+    void statisticsChanged();
+    void timestampMsChanged();
+
 private:
     int m_frameId = 0;
     int m_imageRevision = 0;
 
     ScaleMode m_scaleMode = ScaleMode::Raw;
+
+    FrameStatistics m_statistics;
+    quint32 m_timestampMs = 0;
 };
 
 #endif
