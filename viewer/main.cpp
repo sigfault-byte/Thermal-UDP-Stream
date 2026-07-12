@@ -1,12 +1,19 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QTimer>
 #include <QtQml>
 
 #include "analysis/frame_statistics_calculator.h"
+#include "analysis/frame_timing_tracker.h"
 #include "image/thermal_image_provider.h"
 #include "models/frame_model.h"
 #include "network/udp_receiver.h"
+
+namespace
+{
+constexpr quint16 ReceiverUdpPort = 5005;
+}
 
 int main(int argc, char *argv[])
 {
@@ -17,11 +24,13 @@ int main(int argc, char *argv[])
     // Backend state object exposed to QML.
     // QML reads properties from this object and reacts to its NOTIFY signals.
     FrameModel frameModel;
+    FrameTimingTracker frameTimingTracker;
+    QTimer frameTimingRefreshTimer;
 
     // Backend network object.
     // It listens for UDP packets and emits thermalFrameReceived(...) when a valid
     // thermal frame has been decoded.
-    UdpReceiver udpReceiver(5005);
+    UdpReceiver udpReceiver(ReceiverUdpPort);
 
     // QML engine.
     // This loads the QML module and creates the QML object tree.
@@ -55,6 +64,11 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(
         "frameModel",
         &frameModel
+    );
+
+    engine.rootContext()->setContextProperty(
+        "receiverUdpPort",
+        ReceiverUdpPort
     );
 
     // Register the FrameModel C++ type name with QML.
@@ -91,9 +105,15 @@ int main(int argc, char *argv[])
         &frameModel,
         [
             &frameModel,
+            &frameTimingTracker,
             thermalImageProvider
         ](const ThermalFrame &frame)
         {
+            const FrameTimingStatistics timingStatistics =
+                frameTimingTracker.registerReceivedFrame(
+                    frame.timestampMs
+                );
+
             // Compute min/max/other statistics from the raw pixel bytes.
             const FrameStatistics statistics =
                 FrameStatisticsCalculator::calculate(
@@ -103,6 +123,10 @@ int main(int argc, char *argv[])
             // Update QML-visible metadata.
             frameModel.setTimestampMs(
                 frame.timestampMs
+            );
+
+            frameModel.setFrameTimingStatistics(
+                timingStatistics
             );
 
             frameModel.setStatistics(
@@ -134,6 +158,27 @@ int main(int argc, char *argv[])
             frameModel.notifyImageUpdated();
         }
     );
+
+    frameTimingRefreshTimer.setInterval(
+        250
+    );
+
+    QObject::connect(
+        &frameTimingRefreshTimer,
+        &QTimer::timeout,
+        &frameModel,
+        [
+            &frameModel,
+            &frameTimingTracker
+        ]()
+        {
+            frameModel.setFrameTimingStatistics(
+                frameTimingTracker.refresh()
+            );
+        }
+    );
+
+    frameTimingRefreshTimer.start();
 
     // Receiver/network statistics also flow through FrameModel,
     // so QML only needs one backend object.

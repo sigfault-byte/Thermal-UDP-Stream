@@ -134,7 +134,7 @@ Rectangle {
                 Text {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    text: "Datagrams received: " + root.receivedDatagramCount
+                    text: "Datagrams received (Session): " + root.receivedDatagramCount
                     color: "#d8d8df"
                     font.pixelSize: 16
                     elide: Text.ElideRight
@@ -143,7 +143,7 @@ Rectangle {
                 Text {
                     Layout.fillWidth: true
                     Layout.minimumWidth: 0
-                    text: "Completed frames: " + root.completedFrameCount
+                    text: "Completed frames (Session): " + root.completedFrameCount
                     color: "#d8d8df"
                     font.pixelSize: 16
                     elide: Text.ElideRight

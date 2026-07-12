@@ -157,3 +157,81 @@ quint32 FrameModel::latestReceivedFrameId() const
 {
     return m_receiverStatistics.latestFrameId;
 }
+
+void FrameModel::setFrameTimingStatistics(
+    const FrameTimingStatistics &statistics
+)
+{
+    if (
+        m_frameTimingStatistics.hasReceivedFrame
+            == statistics.hasReceivedFrame
+        &&
+        m_frameTimingStatistics.hasReceivedFrameInterval
+            == statistics.hasReceivedFrameInterval
+        &&
+        m_frameTimingStatistics.hasCameraFrameInterval
+            == statistics.hasCameraFrameInterval
+        &&
+        m_frameTimingStatistics.isReceivingFrames
+            == statistics.isReceivingFrames
+        &&
+        m_frameTimingStatistics.isStreamStale
+            == statistics.isStreamStale
+        &&
+        m_frameTimingStatistics.receivedFrameIntervalMs
+            == statistics.receivedFrameIntervalMs
+        &&
+        m_frameTimingStatistics.cameraFrameIntervalMs
+            == statistics.cameraFrameIntervalMs
+        &&
+        m_frameTimingStatistics.receivedFramesPerSecond
+            == statistics.receivedFramesPerSecond
+    )
+    {
+        return;
+    }
+
+    m_frameTimingStatistics = statistics;
+
+    emit frameTimingChanged();
+}
+
+bool FrameModel::hasReceivedFrame() const
+{
+    return m_frameTimingStatistics.hasReceivedFrame;
+}
+
+bool FrameModel::hasReceivedFrameInterval() const
+{
+    return m_frameTimingStatistics.hasReceivedFrameInterval;
+}
+
+bool FrameModel::hasCameraFrameInterval() const
+{
+    return m_frameTimingStatistics.hasCameraFrameInterval;
+}
+
+bool FrameModel::isReceivingFrames() const
+{
+    return m_frameTimingStatistics.isReceivingFrames;
+}
+
+bool FrameModel::isStreamStale() const
+{
+    return m_frameTimingStatistics.isStreamStale;
+}
+
+quint32 FrameModel::receivedFrameIntervalMs() const
+{
+    return m_frameTimingStatistics.receivedFrameIntervalMs;
+}
+
+quint32 FrameModel::cameraFrameIntervalMs() const
+{
+    return m_frameTimingStatistics.cameraFrameIntervalMs;
+}
+
+double FrameModel::receivedFramesPerSecond() const
+{
+    return m_frameTimingStatistics.receivedFramesPerSecond;
+}

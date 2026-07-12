@@ -4,6 +4,7 @@
 #include <QObject>
 
 #include "analysis/frame_statistics.h"
+#include "analysis/frame_timing_statistics.h"
 #include "analysis/receiver_statistics.h"
 
 class FrameModel : public QObject
@@ -96,6 +97,54 @@ class FrameModel : public QObject
         NOTIFY receiverStatisticsChanged
     )
 
+    Q_PROPERTY(
+        bool hasReceivedFrame
+        READ hasReceivedFrame
+        NOTIFY frameTimingChanged
+    )
+
+    Q_PROPERTY(
+        bool hasReceivedFrameInterval
+        READ hasReceivedFrameInterval
+        NOTIFY frameTimingChanged
+    )
+
+    Q_PROPERTY(
+        bool hasCameraFrameInterval
+        READ hasCameraFrameInterval
+        NOTIFY frameTimingChanged
+    )
+
+    Q_PROPERTY(
+        bool isReceivingFrames
+        READ isReceivingFrames
+        NOTIFY frameTimingChanged
+    )
+
+    Q_PROPERTY(
+        bool isStreamStale
+        READ isStreamStale
+        NOTIFY frameTimingChanged
+    )
+
+    Q_PROPERTY(
+        quint32 receivedFrameIntervalMs
+        READ receivedFrameIntervalMs
+        NOTIFY frameTimingChanged
+    )
+
+    Q_PROPERTY(
+        quint32 cameraFrameIntervalMs
+        READ cameraFrameIntervalMs
+        NOTIFY frameTimingChanged
+    )
+
+    Q_PROPERTY(
+        double receivedFramesPerSecond
+        READ receivedFramesPerSecond
+        NOTIFY frameTimingChanged
+    )
+
 public:
     // The enum belongs to FrameModel and is exposed to Qt/QML.
         enum class ScaleMode
@@ -145,6 +194,20 @@ public:
     quint64 rejectedDatagramCount() const;
     quint32 latestReceivedFrameId() const;
 
+    // Replace all frame timing values and notify QML.
+    void setFrameTimingStatistics(
+        const FrameTimingStatistics &statistics
+    );
+
+    bool hasReceivedFrame() const;
+    bool hasReceivedFrameInterval() const;
+    bool hasCameraFrameInterval() const;
+    bool isReceivingFrames() const;
+    bool isStreamStale() const;
+    quint32 receivedFrameIntervalMs() const;
+    quint32 cameraFrameIntervalMs() const;
+    double receivedFramesPerSecond() const;
+
 signals:
     // Emitted whenever frameId changes.
     // QML listens to this signal and updates dependent bindings.
@@ -155,6 +218,7 @@ signals:
     void statisticsChanged();
     void timestampMsChanged();
     void receiverStatisticsChanged();
+    void frameTimingChanged();
 
 private:
     int m_frameId = 0;
@@ -164,6 +228,7 @@ private:
 
     FrameStatistics m_statistics;
     ReceiverStatistics m_receiverStatistics;
+    FrameTimingStatistics m_frameTimingStatistics;
     quint32 m_timestampMs = 0;
 };
 

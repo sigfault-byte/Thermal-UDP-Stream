@@ -28,7 +28,20 @@ Window {
             Layout.fillWidth: true
             Layout.preferredHeight: 64
 
-            frameId: frameModel.frameId
+            udpPort: receiverUdpPort
+            hasReceivedFrame: frameModel.hasReceivedFrame
+            isReceivingFrames: frameModel.isReceivingFrames
+            isStreamStale: frameModel.isStreamStale
+            hasReceivedFrameInterval:
+                frameModel.hasReceivedFrameInterval
+            hasCameraFrameInterval:
+                frameModel.hasCameraFrameInterval
+            receivedFramesPerSecond:
+                frameModel.receivedFramesPerSecond
+            receivedFrameIntervalMs:
+                frameModel.receivedFrameIntervalMs
+            cameraFrameIntervalMs:
+                frameModel.cameraFrameIntervalMs
         }
 
         // Main content area.
