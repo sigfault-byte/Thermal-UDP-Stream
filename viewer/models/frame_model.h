@@ -4,6 +4,7 @@
 #include <QObject>
 
 #include "analysis/frame_statistics.h"
+#include "analysis/receiver_statistics.h"
 
 class FrameModel : public QObject
 {
@@ -71,6 +72,30 @@ class FrameModel : public QObject
         NOTIFY timestampMsChanged
     )
 
+    Q_PROPERTY(
+        quint64 receivedDatagramCount
+        READ receivedDatagramCount
+        NOTIFY receiverStatisticsChanged
+    )
+
+    Q_PROPERTY(
+        quint64 completedFrameCount
+        READ completedFrameCount
+        NOTIFY receiverStatisticsChanged
+    )
+
+    Q_PROPERTY(
+        quint64 rejectedDatagramCount
+        READ rejectedDatagramCount
+        NOTIFY receiverStatisticsChanged
+    )
+
+    Q_PROPERTY(
+        quint32 latestReceivedFrameId
+        READ latestReceivedFrameId
+        NOTIFY receiverStatisticsChanged
+    )
+
 public:
     // The enum belongs to FrameModel and is exposed to Qt/QML.
         enum class ScaleMode
@@ -112,6 +137,14 @@ public:
     // Replace all frame statistics and notify QML.
     void setStatistics(const FrameStatistics &statistics);
 
+    // Replace all receiver statistics and notify QML.
+    void setReceiverStatistics(const ReceiverStatistics &statistics);
+
+    quint64 receivedDatagramCount() const;
+    quint64 completedFrameCount() const;
+    quint64 rejectedDatagramCount() const;
+    quint32 latestReceivedFrameId() const;
+
 signals:
     // Emitted whenever frameId changes.
     // QML listens to this signal and updates dependent bindings.
@@ -121,6 +154,7 @@ signals:
 
     void statisticsChanged();
     void timestampMsChanged();
+    void receiverStatisticsChanged();
 
 private:
     int m_frameId = 0;
@@ -129,6 +163,7 @@ private:
     ScaleMode m_scaleMode = ScaleMode::Raw;
 
     FrameStatistics m_statistics;
+    ReceiverStatistics m_receiverStatistics;
     quint32 m_timestampMs = 0;
 };
 

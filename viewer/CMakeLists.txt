@@ -28,6 +28,9 @@ qt_add_executable(padawan_viewer
     analysis/frame_statistics.h
     analysis/frame_statistics_calculator.h
     analysis/frame_statistics_calculator.cpp
+    analysis/receiver_statistics.h
+    analysis/receiver_statistics_tracker.h
+    analysis/receiver_statistics_tracker.cpp
 )
 
 qt_add_qml_module(padawan_viewer

@@ -13,9 +13,15 @@ Rectangle {
     required property int belowRangePixelCount
     required property int aboveRangePixelCount
     required property int inRangePixelCount
+    required property var receivedDatagramCount
+    required property var completedFrameCount
+    required property var rejectedDatagramCount
+    required property var latestReceivedFrameId
 
     color: "#18181f"
     radius: 8
+
+    clip: true
 
     ColumnLayout {
         anchors.fill: parent
@@ -23,58 +29,144 @@ Rectangle {
         spacing: 14
 
         Text {
-            text: "Frame statistics"
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            text: "Statistics"
             color: "white"
             font.pixelSize: 18
             font.bold: true
-        }
-
-        Text {
-            Layout.fillWidth: true
-            text: "Minimum: " + root.minimumCelsius.toFixed(2) + " °C"
-            color: "#d8d8df"
-            font.pixelSize: 16
+            horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
         }
 
-        Text {
+        GridLayout {
             Layout.fillWidth: true
-            text: "Maximum: " + root.maximumCelsius.toFixed(2) + " °C"
-            color: "#d8d8df"
-            font.pixelSize: 16
-            elide: Text.ElideRight
-        }
+            Layout.minimumWidth: 0
+            columns: 2
+            columnSpacing: 20
+            rowSpacing: 8
 
-        Text {
-            Layout.fillWidth: true
-            text: "Mean: " + root.meanCelsius.toFixed(2) + " °C"
-            color: "#d8d8df"
-            font.pixelSize: 16
-            elide: Text.ElideRight
-        }
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                spacing: 8
 
-        Text {
-            Layout.fillWidth: true
-            text: "Pixels below 10 °C: " + root.belowRangePixelCount
-            color: "#d8d8df"
-            font.pixelSize: 16
-            elide: Text.ElideRight
-        }
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Frame"
+                    color: "white"
+                    font.pixelSize: 16
+                    font.bold: true
+                    elide: Text.ElideRight
+                }
 
-        Text {
-            Layout.fillWidth: true
-            text: "Pixels above 45 °C: " + root.aboveRangePixelCount
-            color: "#d8d8df"
-            font.pixelSize: 16
-            elide: Text.ElideRight
-        }
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Minimum: " + root.minimumCelsius.toFixed(2) + " °C"
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
 
-        Text {
-            Layout.fillWidth: true
-            text: "In-range pixels: " + root.inRangePixelCount + " / 768"
-            color: "#d8d8df"
-            font.pixelSize: 16
-            elide: Text.ElideRight
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Maximum: " + root.maximumCelsius.toFixed(2) + " °C"
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Mean: " + root.meanCelsius.toFixed(2) + " °C"
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "In-range pixels: " + root.inRangePixelCount + " / 768"
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Below 10 °C: " + root.belowRangePixelCount
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Above 45 °C: " + root.aboveRangePixelCount
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                spacing: 8
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Receiver"
+                    color: "white"
+                    font.pixelSize: 16
+                    font.bold: true
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Datagrams received: " + root.receivedDatagramCount
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Completed frames: " + root.completedFrameCount
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Rejected datagrams: " + root.rejectedDatagramCount
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Latest frame ID: " + root.latestReceivedFrameId
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+            }
         }
 
         Rectangle {
@@ -84,13 +176,18 @@ Rectangle {
         }
 
         Text {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
             text: "Display scale"
             color: "white"
             font.pixelSize: 18
             font.bold: true
+            elide: Text.ElideRight
         }
 
         RawRollingSwitch {
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
             rolling: root.autoScale
             onModeRequested: rolling => {
                 root.scaleModeRequested(rolling)
@@ -98,37 +195,35 @@ Rectangle {
         }
 
         Text {
-            text: "Vmin: --"
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            text: "Vmin: "
+                  + (root.autoScale
+                      ? root.minimumCelsius.toFixed(2)
+                      : "10.00")
+                  + " °C"
             color: "#d8d8df"
             font.pixelSize: 16
+            elide: Text.ElideRight
         }
 
         Text {
-            text: "Vmax: --"
+            Layout.fillWidth: true
+            Layout.minimumWidth: 0
+            text: "Vmax: "
+                  + (root.autoScale
+                      ? root.maximumCelsius.toFixed(2)
+                      : "45.00")
+                  + " °C"
             color: "#d8d8df"
             font.pixelSize: 16
+            elide: Text.ElideRight
         }
 
-        // Item {
-        //     Layout.fillHeight: true
-        // }
-
-        Text {
-            text: "Packets lost: --"
-            color: "#d8d8df"
-            font.pixelSize: 16
-        }
-
-        Text {
-            text: "Out of order: --"
-            color: "#d8d8df"
-            font.pixelSize: 16
-        }
-
-        Text {
-            text: "FPS: --"
-            color: "#d8d8df"
-            font.pixelSize: 16
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumWidth: 0
         }
     }
 }

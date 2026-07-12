@@ -33,14 +33,25 @@ Window {
 
         // Main content area.
         RowLayout {
+            id: dashboardRow
+
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.minimumHeight: 0
             spacing: 12
 
             // Thermal image panel.
             ThermalPanel {
-                Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.minimumWidth: 0
+                Layout.preferredWidth:
+                    Math.max(
+                        300,
+                        Math.min(
+                            520,
+                            (dashboardRow.height - 88) * 4 / 3 + 32
+                        )
+                    )
 
                 imageSource:
                     "image://thermal/frame?revision="
@@ -50,7 +61,9 @@ Window {
 
             // Statistics and controls panel.
             StatisticsPanel {
-                Layout.preferredWidth: 300
+                Layout.fillWidth: true
+                Layout.preferredWidth: 620
+                Layout.minimumWidth: 0
                 Layout.fillHeight: true
 
                 minimumCelsius: frameModel.minimumCelsius
@@ -60,6 +73,10 @@ Window {
                 inRangePixelCount: frameModel.inRangePixelCount
                 belowRangePixelCount: frameModel.belowRangePixelCount
                 aboveRangePixelCount: frameModel.aboveRangePixelCount
+                receivedDatagramCount: frameModel.receivedDatagramCount
+                completedFrameCount: frameModel.completedFrameCount
+                rejectedDatagramCount: frameModel.rejectedDatagramCount
+                latestReceivedFrameId: frameModel.latestReceivedFrameId
 
                 autoScale:
                     frameModel.scaleMode === FrameModel.Auto

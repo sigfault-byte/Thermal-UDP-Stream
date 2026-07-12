@@ -51,6 +51,11 @@ void UdpReceiver::processPendingDatagrams()
         const QNetworkDatagram datagram =
             m_socket.receiveDatagram();
 
+        //TODO: this only works if a datagram is always a complete packet.
+        // If later the camera sends subpages, or if the viewer merges them
+        // this will be wrong
+        m_statisticsTracker.registerDatagramReceived();
+
         const QByteArray payload =
             datagram.data();
 
@@ -66,12 +71,25 @@ void UdpReceiver::processPendingDatagrams()
 
         if (!decoded)
         {
+            m_statisticsTracker.registerDatagramRejected();
+
+            emit receiverStatisticsChanged(
+                m_statisticsTracker.statistics()
+            );
+
             qWarning()
                 << "Rejected datagram:"
                 << errorMessage;
 
             continue;
         }
+
+        m_statisticsTracker.registerCompletedFrame(
+                frame.frameId
+        );
+        emit receiverStatisticsChanged(
+            m_statisticsTracker.statistics()
+        );
 
         qInfo()
             << "Decoded thermal frame"
@@ -84,34 +102,3 @@ void UdpReceiver::processPendingDatagrams()
         emit thermalFrameReceived(frame);
     }
 }
-
-// void UdpReceiver::processPendingDatagrams()
-// {
-//     // readyRead means at least one datagram is available.
-//     // Several datagrams may have arrived before this function runs,
-//     // so consume all pending datagrams.
-//     while (m_socket.hasPendingDatagrams())
-//     {
-//         // How can this be a const?
-//         //
-//         const QNetworkDatagram datagram =
-//             // because m_socket is a QUdpSocket, it has the following method
-//             // UdpReceiver uses a UDP socket as an implementation detail
-//             m_socket.receiveDatagram();
-
-//         const QByteArray payload = datagram.data();
-
-//         qInfo()
-//             << "Received"
-//             << payload.size()
-//             << "bytes from"
-//             << datagram.senderAddress().toString()
-//             << ":"
-//             << datagram.senderPort();
-
-//         // Print the payload as hexadecimal bytes.
-//         qInfo()
-//             << "Payload:"
-//             << payload.toHex(' ');
-//     }
-// }

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QUdpSocket>
+#include "analysis/receiver_statistics_tracker.h"
 #include "protocol/thermal_frame.h"
 
 class UdpReceiver : public QObject
@@ -28,6 +29,10 @@ public:
     signals:
         // announce that one valid thermal frame was decoded.
         void thermalFrameReceived(const ThermalFrame &frame);
+        //receiver stats signals
+        void receiverStatisticsChanged(
+            const ReceiverStatistics &statistics
+        );
 
 private slots:
     // called whenever one or more UDP datagrams are waiting.
@@ -36,6 +41,7 @@ private slots:
 private:
     // the real UDP socket owned by this receiver object.
     QUdpSocket m_socket;
+    ReceiverStatisticsTracker m_statisticsTracker;
 };
 
 #endif

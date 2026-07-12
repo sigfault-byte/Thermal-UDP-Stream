@@ -1,5 +1,6 @@
 # ESP-IDF build output
 firmware/hello_board/build/
+firmware/hello_board/.cache/
 
 # Python
 **/__pycache__/

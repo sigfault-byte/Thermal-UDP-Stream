@@ -111,3 +111,49 @@ void FrameModel::setStatistics(
 
     emit statisticsChanged();
 }
+
+void FrameModel::setReceiverStatistics(
+    const ReceiverStatistics &statistics
+)
+{
+    if (
+        m_receiverStatistics.receivedDatagramCount
+            == statistics.receivedDatagramCount
+        &&
+        m_receiverStatistics.completedFrameCount
+            == statistics.completedFrameCount
+        &&
+        m_receiverStatistics.rejectedDatagramCount
+            == statistics.rejectedDatagramCount
+        &&
+        m_receiverStatistics.latestFrameId
+            == statistics.latestFrameId
+    )
+    {
+        return;
+    }
+
+    m_receiverStatistics = statistics;
+
+    emit receiverStatisticsChanged();
+}
+
+quint64 FrameModel::receivedDatagramCount() const
+{
+    return m_receiverStatistics.receivedDatagramCount;
+}
+
+quint64 FrameModel::completedFrameCount() const
+{
+    return m_receiverStatistics.completedFrameCount;
+}
+
+quint64 FrameModel::rejectedDatagramCount() const
+{
+    return m_receiverStatistics.rejectedDatagramCount;
+}
+
+quint32 FrameModel::latestReceivedFrameId() const
+{
+    return m_receiverStatistics.latestFrameId;
+}
