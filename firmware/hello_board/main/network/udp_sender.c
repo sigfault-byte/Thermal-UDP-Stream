@@ -51,6 +51,10 @@ void udp_sender_task(void *pvParameters)
 
         while (!have0 || !have1) {
             int subpage = MLX90640_GetFrameData(0x33, frameData);
+            if (subpage < 0) {
+                ESP_LOGW(TAG, "Failed to read MLX90640 frame: %d", subpage);
+                continue;
+            }
 
             float ta = MLX90640_GetTa(frameData, params);
             float tr = ta - 8.0f;
@@ -63,11 +67,37 @@ void udp_sender_task(void *pvParameters)
                 temp_subpage
             );
 
-            for (int i = 0; i < THERMAL_PIXELS; i++) {
-                if (temp_subpage[i] != 0.0f) {
-                    temperatures[i] = temp_subpage[i];
+            for (int row = 0; row < THERMAL_HEIGHT; row++) {
+                for (int column = 0; column < THERMAL_WIDTH; column++) {
+                    const int index =
+                        row * THERMAL_WIDTH + column;
+
+                    /*
+                     * MLX90640 subpages are interleaved like a checkerboard.
+                     *
+                     * (row + column) & 1 checks the last bit:
+                     *
+                     *   0 -> even checkerboard square
+                     *   1 -> odd checkerboard square
+                     *
+                     * We only copy the pixels that belong to the subpage
+                     * returned by MLX90640_GetFrameData().
+                     */
+                    const int pixel_subpage =
+                        (row + column) & 1;
+
+                    if (pixel_subpage == subpage) {
+                        temperatures[index] =
+                            temp_subpage[index];
+                    }
                 }
             }
+
+            // for (int i = 0; i < THERMAL_PIXELS; i++) {
+            //     if (temp_subpage[i] != 0.0f) {
+            //         temperatures[i] = temp_subpage[i];
+            //     }
+            // }
 
             if (subpage == 0) have0 = 1;
             if (subpage == 1) have1 = 1;

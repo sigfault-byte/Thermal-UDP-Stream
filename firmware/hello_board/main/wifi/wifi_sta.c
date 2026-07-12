@@ -13,7 +13,7 @@
 
 #define WIFI_CONNECTED_BIT BIT0
 
-#define WIFI_SSID "SSID_NAME"
+#define WIFI_SSID "SSID"
 #define WIFI_PASS "PASSWORD"
 
 static const char *TAG = "wifi_sta";
