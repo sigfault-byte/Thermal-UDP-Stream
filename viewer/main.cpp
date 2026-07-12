@@ -9,6 +9,7 @@
 #include "image/thermal_image_provider.h"
 #include "models/frame_model.h"
 #include "network/udp_receiver.h"
+#include "detector/hotspot_detector.h"
 
 namespace
 {
@@ -114,6 +115,9 @@ int main(int argc, char *argv[])
                     frame.timestampMs
                 );
 
+            const Hotspot hotspot =
+                HotspotDetector::detect(frame.pixels);
+
             // Compute min/max/other statistics from the raw pixel bytes.
             const FrameStatistics statistics =
                 FrameStatisticsCalculator::calculate(
@@ -124,6 +128,8 @@ int main(int argc, char *argv[])
             frameModel.setTimestampMs(
                 frame.timestampMs
             );
+
+            frameModel.setHotspot(hotspot);
 
             frameModel.setFrameTimingStatistics(
                 timingStatistics

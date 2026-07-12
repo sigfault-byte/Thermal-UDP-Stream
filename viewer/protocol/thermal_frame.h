@@ -10,7 +10,7 @@
 
 struct ThermalFrame
 {
-    // QT internal 32 byte int
+    // QT internal 4 byte int
     quint32 frameId = 0;
     quint32 timestampMs = 0;
     QByteArray pixels;

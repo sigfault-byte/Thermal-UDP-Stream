@@ -235,3 +235,34 @@ double FrameModel::receivedFramesPerSecond() const
 {
     return m_frameTimingStatistics.receivedFramesPerSecond;
 }
+
+void FrameModel::setHotspot(const Hotspot &hotspot)
+{
+    m_hotspot = hotspot;
+    emit hotspotChanged();
+}
+
+bool FrameModel::hotspotValid() const
+{
+    return m_hotspot.valid;
+}
+
+int FrameModel::hotspotX() const
+{
+    return m_hotspot.x;
+}
+
+int FrameModel::hotspotY() const
+{
+    return m_hotspot.y;
+}
+
+double FrameModel::hotspotTemperatureCelsius() const
+{
+    return m_hotspot.temperatureCelsius;
+}
+
+bool FrameModel::hotspotAboveRange() const
+{
+    return m_hotspot.aboveRange;
+}

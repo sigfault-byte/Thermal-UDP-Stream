@@ -6,6 +6,7 @@
 #include "analysis/frame_statistics.h"
 #include "analysis/frame_timing_statistics.h"
 #include "analysis/receiver_statistics.h"
+#include "detector/hotspot_detector.h"
 
 class FrameModel : public QObject
 {
@@ -145,6 +146,36 @@ class FrameModel : public QObject
         NOTIFY frameTimingChanged
     )
 
+    Q_PROPERTY(
+        bool hotspotValid
+        READ hotspotValid
+        NOTIFY hotspotChanged
+    )
+
+    Q_PROPERTY(
+        int hotspotX
+        READ hotspotX
+        NOTIFY hotspotChanged
+    )
+
+    Q_PROPERTY(
+        int hotspotY
+        READ hotspotY
+        NOTIFY hotspotChanged
+    )
+
+    Q_PROPERTY(
+        double hotspotTemperatureCelsius
+        READ hotspotTemperatureCelsius
+        NOTIFY hotspotChanged
+    )
+
+    Q_PROPERTY(
+        bool hotspotAboveRange
+        READ hotspotAboveRange
+        NOTIFY hotspotChanged
+    )
+
 public:
     // The enum belongs to FrameModel and is exposed to Qt/QML.
         enum class ScaleMode
@@ -155,7 +186,7 @@ public:
 // Register it for qt
     Q_ENUM(ScaleMode)
 
-
+    // prevent constructing without explictly doing it
     explicit FrameModel(QObject *parent = nullptr);
 
     // Getter used by Qt/QML to read the current frame ID.
@@ -208,6 +239,14 @@ public:
     quint32 cameraFrameIntervalMs() const;
     double receivedFramesPerSecond() const;
 
+    bool hotspotValid() const;
+    int hotspotX() const;
+    int hotspotY() const;
+    double hotspotTemperatureCelsius() const;
+    bool hotspotAboveRange() const;
+
+    void setHotspot(const Hotspot &hotspot);
+
 signals:
     // Emitted whenever frameId changes.
     // QML listens to this signal and updates dependent bindings.
@@ -220,6 +259,8 @@ signals:
     void receiverStatisticsChanged();
     void frameTimingChanged();
 
+    void hotspotChanged();
+
 private:
     int m_frameId = 0;
     int m_imageRevision = 0;
@@ -230,6 +271,8 @@ private:
     ReceiverStatistics m_receiverStatistics;
     FrameTimingStatistics m_frameTimingStatistics;
     quint32 m_timestampMs = 0;
+
+    Hotspot m_hotspot;
 };
 
 #endif

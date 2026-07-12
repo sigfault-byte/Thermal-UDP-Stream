@@ -34,6 +34,11 @@ qt_add_executable(padawan_viewer
     analysis/receiver_statistics.h
     analysis/receiver_statistics_tracker.h
     analysis/receiver_statistics_tracker.cpp
+
+    detector/hotspot.h
+    detector/hotspot_detector.h
+    detector/hotspot_detector.cpp
+    detector/thermal_frame_constants.h
 )
 
 qt_add_qml_module(padawan_viewer

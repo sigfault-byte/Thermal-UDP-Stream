@@ -65,11 +65,17 @@ Window {
                             (dashboardRow.height - 88) * 4 / 3 + 32
                         )
                     )
-
                 imageSource:
                     "image://thermal/frame?revision="
                     // also send image revision property
                     + frameModel.imageRevision
+                    hotspotValid: frameModel.hotspotValid
+
+                    hotspotX: frameModel.hotspotX
+                    hotspotY: frameModel.hotspotY
+                    hotspotAboveRange: frameModel.hotspotAboveRange
+                    hotspotTemperatureCelsius:
+                        frameModel.hotspotTemperatureCelsius
             }
 
             // Statistics and controls panel.

@@ -1,6 +1,9 @@
 #include "packet_decoder.h"
+#include "detector/hotspot_detector.h"
+// #include "thermal_quantization.h"
 
 #include <QtEndian>
+// #include <QDebug>
 
 // Ah yes namespace macro?
 // nope, this is an anonymous real namespace
@@ -8,16 +11,16 @@
 // It only exist within this translation unit during compialtion / execution
 namespace
 {
-constexpr qsizetype MagicSize = 8;
-constexpr qsizetype HeaderSize = 18;
-constexpr qsizetype PixelCount = 32 * 24;
-constexpr qsizetype PacketSize = HeaderSize + PixelCount;
+    constexpr qsizetype MagicSize = 8;
+    constexpr qsizetype HeaderSize = 18;
+    constexpr qsizetype PixelCount = 32 * 24;
+    constexpr qsizetype PacketSize = HeaderSize + PixelCount;
 
-constexpr quint8 SupportedVersion = 1;
-constexpr quint8 ThermalFrameType = 1;
+    constexpr quint8 SupportedVersion = 1;
+    constexpr quint8 ThermalFrameType = 1;
 
-// const QByteArray ExpectedMagic("PADAWAN\0", MagicSize);
-const QByteArray ExpectedMagic("PADAWAN", MagicSize);
+    // const QByteArray ExpectedMagic("PADAWAN\0", MagicSize);
+    const QByteArray ExpectedMagic("PADAWAN", MagicSize);
 }
 
 bool PacketDecoder::decodeThermalFrame(
@@ -82,6 +85,24 @@ bool PacketDecoder::decodeThermalFrame(
     frame.pixels =
         datagram.mid(HeaderSize, PixelCount);
 
+    // QByteArray testPixels = frame.pixels;
+    // testPixels[65] =
+    //     static_cast<char>(
+    //         ThermalQuantization::AboveRangeValue
+    //     );
+
+    // const Hotspot hotspot =
+    //     HotspotDetector::detect(testPixels);
+
+    // qDebug()
+    //     << "Hotspot:"
+    //     << "valid =" << hotspot.valid
+    //     << "x =" << hotspot.x
+    //     << "y =" << hotspot.y
+    //     << "temperature =" << hotspot.temperatureCelsius
+    //     << "aboveRange =" << hotspot.aboveRange;
+
     errorMessage.clear();
     return true;
+
 }
