@@ -1,22 +1,29 @@
 # **ESP32 Thermal UDP Stream**
 
-The purpose of this project is to build an embedded system capable of broadcasting thermal images over Wi-Fi.
+The purpose of this project is to build an embedded thermal-imaging system that streams quantized MLX90640 frames over UDP to live Python and Qt viewers.”
 
-An ESP32-S2 reads an MLX90640 thermal camera, converts the raw measurements into calibrated temperatures using the official Melexis library, quantizes the temperatures into a compact binary format, and streams them over UDP to a Python receiver for visualization and future analysis.
+An ESP32-S2 reads an MLX90640 thermal camera, converts the raw
+measurements into calibrated temperatures using the official Melexis
+library, quantizes the temperatures into a compact binary format, and
+streams complete thermal frames over UDP to either a C++/Qt viewer or
+a lightweight Python receiver.
 
 
 ### Hardware
 ```text
 Microcontroller : ESP32-S2 (Flipper Zero Wi-Fi Dev Board)
 Thermal camera  : MLX90640-D55 (24×32 IR array)
-Receiver        : Any computer capable of running Python
+Receiver        : Any computer capable of running Python | * Streams complete thermal frames over Wi-Fi to a desktop receiver.
 ```
 
 ### Environment
-```txt
-ESP-IDF
-uv
-```
+
+- ESP-IDF
+- Python with `uv`
+OR
+- Qt 6.8+ with Qt Quick, Qt Network, and Qt Graphs 
+- CMake 3.16+
+
 
 [ESP-IDF installation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/)  
 `https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/`
@@ -36,7 +43,7 @@ The firmware:
 - Packs the frame into a custom UDP protocol.
 - Streams the packet over Wi-Fi to a Python receiver.
 
-The quantizasion uses:
+The quantization uses:
 
 ```
 < 10°C      -> 0
@@ -83,6 +90,16 @@ idf.py build
 Flash the board 
 ```text
 idf.py -p /dev/cu.XXX flash monitor
+```
+
+Start the C++ / Qt viewer
+The viewer requires Qt 6.8 or later with the Quick, Network, and
+Graphs modules.
+```bash
+cd viewer
+cmake -S . -B build
+cmake --build build
+./build/padawan_viewer
 ```
 
 Start python receiver
