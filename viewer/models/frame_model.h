@@ -171,6 +171,12 @@ class FrameModel : public QObject
     )
 
     Q_PROPERTY(
+        double hotspotMeanTemperatureCelsius
+        READ hotspotMeanTemperatureCelsius
+        NOTIFY hotspotChanged
+    )
+
+    Q_PROPERTY(
         bool hotspotPeakAboveRange
         READ hotspotPeakAboveRange
         NOTIFY hotspotChanged
@@ -299,6 +305,7 @@ public:
     int hotspotPeakX() const;
     int hotspotPeakY() const;
     double hotspotPeakTemperatureCelsius() const;
+    double hotspotMeanTemperatureCelsius() const;
     bool hotspotPeakAboveRange() const;
     double hotspotCenterX() const;
     double hotspotCenterY() const;

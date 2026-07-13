@@ -46,13 +46,22 @@ The quantizasion uses:
 
 allowing the complete **24×32** thermal frame (768 pixels) to fit comfortably inside a single UDP packet.
 
-The Python receiver reconstructs the temperatures and displays the thermal image using Matplotlib with bicubic interpolation.
+## C++ / Qt Viewer
+
+The C++ receiver requires installing [Qt](https://doc.qt.io/qt-6/get-and-install-qt-cli.html).
+
+The viewer receives UDP datagrams, validates and decodes them, displays the thermal frame through a QML interface, computes basic frame analytics, supports both rolling and fixed display scales, performs a simple hotspot detection, and plots a live time series of the frame mean temperature and hotspot temperature.
+
+![qt_viewer](pictures/qt_viewer.png)
+
+## Python Viewer
+
+The Python receiver reconstructs the temperature values and displays the thermal image using Matplotlib with bicubic interpolation.
 
 ![hand](pictures/hand.png)
-![computer](pictures/computer.png) 
+![computer](pictures/computer.png)
 
-The MLX90640 operates at its factory default refresh rate of **2 Hz**.  
-
+The MLX90640 operates at its factory default refresh rate of **2 Hz**.
 
 # **Running**
 

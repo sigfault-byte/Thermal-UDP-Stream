@@ -55,7 +55,7 @@ qt_add_qml_module(padawan_viewer
         qml/HeaderBar.qml
         qml/ThermalPanel.qml
         qml/StatisticsPanel.qml
-        qml/TimingPanel.qml
+        qml/HotSpotStats.qml
         qml/RawRollingSwitch.qml
         qml/TemperatureGraph.qml
 )

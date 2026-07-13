@@ -13,7 +13,7 @@ RowLayout {
     Text {
         text: "Raw"
         color: root.rolling ? "#777783" : "white"
-        font.pixelSize: 15
+        font.pixelSize: 16
     }
 
     Switch {
@@ -31,6 +31,6 @@ RowLayout {
     Text {
         text: "Rolling"
         color: root.rolling ? "white" : "#777783"
-        font.pixelSize: 15
+        font.pixelSize: 16
     }
 }

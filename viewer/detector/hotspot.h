@@ -22,6 +22,8 @@ struct Hotspot
 
     // temp recorded at the peak pixel
     double peakTemperatureCelsius = 0.0;
+    // Mean measurable temperature inside the selected hotspot circle.
+    double meanTemperatureCelsius = 0.0;
 
     // center of the circle
     double centerX = 0.0;

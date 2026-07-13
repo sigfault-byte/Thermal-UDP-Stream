@@ -7,6 +7,7 @@ Rectangle {
     required property bool autoScale
     signal scaleModeRequested(bool autoEnabled)
 
+    required property int imageRevision
     required property real minimumCelsius
     required property real maximumCelsius
     required property real meanCelsius
@@ -17,6 +18,16 @@ Rectangle {
     required property var completedFrameCount
     required property var rejectedDatagramCount
     required property var latestReceivedFrameId
+    required property bool hotspotValid
+    required property bool hotspotPeakAboveRange
+    required property real hotspotPeakTemperatureCelsius
+    required property real hotspotMeanTemperatureCelsius
+    required property real hotspotCenterX
+    required property real hotspotCenterY
+    required property real hotspotRadiusPixels
+    required property int hotspotHotPixelCount
+    required property int hotspotTotalPixelCount
+    required property real hotspotScore
 
     color: "#18181f"
     radius: 8
@@ -167,6 +178,7 @@ Rectangle {
                     elide: Text.ElideRight
                 }
             }
+
         }
 
         Rectangle {
@@ -175,49 +187,83 @@ Rectangle {
             color: "#3a3a44"
         }
 
-        Text {
+        RowLayout {
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            text: "Display scale"
-            color: "white"
-            font.pixelSize: 18
-            font.bold: true
-            elide: Text.ElideRight
-        }
+            Layout.alignment: Qt.AlignTop
+            spacing: 20
 
-        RawRollingSwitch {
-            Layout.fillWidth: true
-            Layout.minimumWidth: 0
-            rolling: root.autoScale
-            onModeRequested: rolling => {
-                root.scaleModeRequested(rolling)
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.alignment: Qt.AlignTop
+                spacing: 8
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Display scale"
+                    color: "white"
+                    font.pixelSize: 16
+                    font.bold: true
+                    elide: Text.ElideRight
+                }
+
+                RawRollingSwitch {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    rolling: root.autoScale
+                    onModeRequested: rolling => {
+                        root.scaleModeRequested(rolling)
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Vmin: "
+                          + (root.autoScale
+                              ? root.minimumCelsius.toFixed(2)
+                              : "10.00")
+                          + " °C"
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 0
+                    text: "Vmax: "
+                          + (root.autoScale
+                              ? root.maximumCelsius.toFixed(2)
+                              : "45.00")
+                          + " °C"
+                    color: "#d8d8df"
+                    font.pixelSize: 16
+                    elide: Text.ElideRight
+                }
             }
-        }
 
-        Text {
-            Layout.fillWidth: true
-            Layout.minimumWidth: 0
-            text: "Vmin: "
-                  + (root.autoScale
-                      ? root.minimumCelsius.toFixed(2)
-                      : "10.00")
-                  + " °C"
-            color: "#d8d8df"
-            font.pixelSize: 16
-            elide: Text.ElideRight
-        }
+            HotSpotStats {
+                Layout.fillWidth: true
+                Layout.minimumWidth: 0
+                Layout.alignment: Qt.AlignTop
 
-        Text {
-            Layout.fillWidth: true
-            Layout.minimumWidth: 0
-            text: "Vmax: "
-                  + (root.autoScale
-                      ? root.maximumCelsius.toFixed(2)
-                      : "45.00")
-                  + " °C"
-            color: "#d8d8df"
-            font.pixelSize: 16
-            elide: Text.ElideRight
+                imageRevision: root.imageRevision
+                hotspotValid: root.hotspotValid
+                hotspotPeakAboveRange: root.hotspotPeakAboveRange
+                hotspotPeakTemperatureCelsius:
+                    root.hotspotPeakTemperatureCelsius
+                hotspotMeanTemperatureCelsius:
+                    root.hotspotMeanTemperatureCelsius
+                hotspotCenterX: root.hotspotCenterX
+                hotspotCenterY: root.hotspotCenterY
+                hotspotRadiusPixels: root.hotspotRadiusPixels
+                hotspotHotPixelCount: root.hotspotHotPixelCount
+                hotspotTotalPixelCount: root.hotspotTotalPixelCount
+                hotspotScore: root.hotspotScore
+            }
         }
 
         Item {

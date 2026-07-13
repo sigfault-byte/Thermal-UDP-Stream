@@ -88,6 +88,7 @@ Window {
                 Layout.minimumWidth: 0
                 Layout.fillHeight: true
 
+                imageRevision: frameModel.imageRevision
                 minimumCelsius: frameModel.minimumCelsius
                 maximumCelsius: frameModel.maximumCelsius
                 meanCelsius: frameModel.meanCelsius
@@ -99,6 +100,19 @@ Window {
                 completedFrameCount: frameModel.completedFrameCount
                 rejectedDatagramCount: frameModel.rejectedDatagramCount
                 latestReceivedFrameId: frameModel.latestReceivedFrameId
+                hotspotValid: frameModel.hotspotValid
+                hotspotPeakTemperatureCelsius:
+                    frameModel.hotspotPeakTemperatureCelsius
+                hotspotMeanTemperatureCelsius:
+                    frameModel.hotspotMeanTemperatureCelsius
+                hotspotPeakAboveRange:
+                    frameModel.hotspotPeakAboveRange
+                hotspotCenterX: frameModel.hotspotCenterX
+                hotspotCenterY: frameModel.hotspotCenterY
+                hotspotRadiusPixels: frameModel.hotspotRadiusPixels
+                hotspotHotPixelCount: frameModel.hotspotHotPixelCount
+                hotspotTotalPixelCount: frameModel.hotspotTotalPixelCount
+                hotspotScore: frameModel.hotspotScore
 
                 autoScale:
                     frameModel.scaleMode === FrameModel.Auto

@@ -361,6 +361,62 @@ Hotspot HotspotDetector::detect(const QByteArray &pixels, const HotspotSettings 
     hotspot.score =
         bestScore;
 
+    double temperatureSumCelsius = 0.0;
+    int temperatureSampleCount = 0;
+    const int bestRadiusSquared = bestRadius * bestRadius;
+
+    for (int pixelY = bestCenterY - bestRadius;
+         pixelY <= bestCenterY + bestRadius;
+         ++pixelY)
+    {
+        for (int pixelX = bestCenterX - bestRadius;
+             pixelX <= bestCenterX + bestRadius;
+             ++pixelX)
+        {
+            const int deltaX = pixelX - bestCenterX;
+            const int deltaY = pixelY - bestCenterY;
+
+            if (deltaX * deltaX + deltaY * deltaY > bestRadiusSquared)
+            {
+                continue;
+            }
+
+            const bool outsideFrame =
+                pixelX < 0
+                || pixelX >= ThermalFrameConstants::Width
+                || pixelY < 0
+                || pixelY >= ThermalFrameConstants::Height;
+
+            if (outsideFrame)
+            {
+                continue;
+            }
+
+            const qsizetype index =
+                pixelY * ThermalFrameConstants::Width
+                + pixelX;
+
+            const quint8 value =
+                static_cast<quint8>(pixels[index]);
+
+            if (!ThermalQuantization::isValidTemperatureValue(value))
+            {
+                continue;
+            }
+
+            temperatureSumCelsius +=
+                ThermalQuantization::decodeTemperature(value);
+            ++temperatureSampleCount;
+        }
+    }
+
+    if (temperatureSampleCount > 0)
+    {
+        hotspot.meanTemperatureCelsius =
+            temperatureSumCelsius
+            / static_cast<double>(temperatureSampleCount);
+    }
+
     // qDebug()
     //     << "Peak:"
     //     << hotspot.peakX

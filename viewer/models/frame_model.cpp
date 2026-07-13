@@ -264,6 +264,11 @@ double FrameModel::hotspotPeakTemperatureCelsius() const
     return m_hotspot.peakTemperatureCelsius;
 }
 
+double FrameModel::hotspotMeanTemperatureCelsius() const
+{
+    return m_hotspot.meanTemperatureCelsius;
+}
+
 bool FrameModel::hotspotPeakAboveRange() const
 {
     return m_hotspot.peakAboveRange;
