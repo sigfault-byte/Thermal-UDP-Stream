@@ -14,7 +14,6 @@ namespace
     constexpr qsizetype MagicSize = 8;
     constexpr qsizetype HeaderSize = 18;
     constexpr qsizetype PixelCount = 32 * 24;
-    constexpr qsizetype PacketSize = HeaderSize + PixelCount;
 
     constexpr quint8 SupportedVersion = 1;
     constexpr quint8 ThermalFrameType = 1;
@@ -30,12 +29,12 @@ bool PacketDecoder::decodeThermalFrame(
 )
 {
     // A thermal packet must have exactly one header and 768 pixels.
-    if (datagram.size() != PacketSize)
+    if (datagram.size() != PacketDecoder::RawThermalPacketSize)
     {
         errorMessage = QString(
             "Invalid packet size: expected %1 bytes, received %2"
         )
-            .arg(PacketSize)
+            .arg(PacketDecoder::RawThermalPacketSize)
             .arg(datagram.size());
 
         return false;

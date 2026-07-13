@@ -1,4 +1,7 @@
 #include <QGuiApplication>
+#include <QCommandLineOption>
+#include <QCommandLineParser>
+#include <QFile>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QTimer>
@@ -12,6 +15,7 @@
 #include "image/thermal_image_provider.h"
 #include "models/frame_model.h"
 #include "network/udp_receiver.h"
+#include "protocol/packet_decoder.h"
 #include "detector/hotspot_detector.h"
 #include "detector/hotspot_settings.h"
 #include "timeseries/time_series_recorder.h"
@@ -27,11 +31,87 @@ int main(int argc, char *argv[])
     // This owns the main event loop used by Qt, QML, timers, sockets, signals, etc.
     QGuiApplication padawan(argc, argv);
 
+    QCommandLineParser commandLineParser;
+    commandLineParser.setApplicationDescription(
+        "Padawan thermal camera viewer"
+    );
+    commandLineParser.addHelpOption();
+
+    // Save mode copies every UDP payload into a raw .bin file.
+    // The file has no header: it is only 786-byte packets back-to-back.
+    const QCommandLineOption saveBinOption(
+        QStringList() << "save-bin",
+        "Save raw UDP payloads to <path>.",
+        "path"
+    );
+
+    // Read mode replays that same raw .bin format into the normal app pipeline.
+    // UDP is disabled in this mode, because bytes are coming from the file.
+    const QCommandLineOption readBinOption(
+        QStringList() << "read-bin",
+        "Read raw UDP payloads from <path> instead of listening on UDP.",
+        "path"
+    );
+
+    // Replay speed is a simple timer delay, not frames-per-second math.
+    // 1000 ms means one packet per second; 0 means Qt runs the timer quickly.
+    const QCommandLineOption speedOption(
+        QStringList() << "speed",
+        "Raw .bin replay delay in milliseconds between packets. Defaults to 1000.",
+        "ms",
+        "1000"
+    );
+
+    commandLineParser.addOption(
+        saveBinOption
+    );
+    commandLineParser.addOption(
+        readBinOption
+    );
+    commandLineParser.addOption(
+        speedOption
+    );
+    commandLineParser.process(
+        padawan
+    );
+
+    const QString saveBinPath =
+        commandLineParser.value(saveBinOption);
+    const QString readBinPath =
+        commandLineParser.value(readBinOption);
+
+    bool speedParsed = false;
+    const int rawReplayIntervalMs =
+        commandLineParser.value(speedOption).toInt(
+            &speedParsed
+        );
+
+    if (!speedParsed || rawReplayIntervalMs < 0)
+    {
+        qCritical()
+            << "--speed must be a non-negative integer number of milliseconds";
+
+        return 1;
+    }
+
+    if (!saveBinPath.isEmpty() && !readBinPath.isEmpty())
+    {
+        qCritical()
+            << "--save-bin and --read-bin cannot be used together";
+
+        return 1;
+    }
+
+    const bool readBinMode =
+        !readBinPath.isEmpty();
+
     // Backend state object exposed to QML.
     // QML reads properties from this object and reacts to its NOTIFY signals.
     FrameModel frameModel;
     FrameTimingTracker frameTimingTracker;
     QTimer frameTimingRefreshTimer;
+    QTimer rawReplayTimer;
+    QFile rawReplayFile;
 
     //time serie test
     TimeSeriesRecorder timeSeriesRecorder;
@@ -41,7 +121,36 @@ int main(int argc, char *argv[])
     // Backend network object.
     // It listens for UDP packets and emits thermalFrameReceived(...) when a valid
     // thermal frame has been decoded.
-    UdpReceiver udpReceiver(ReceiverUdpPort);
+    //
+    // In .bin replay mode the object is still used, but the socket is not bound.
+    // That keeps live UDP and replay going through the same raw-packet decoder.
+    UdpReceiver udpReceiver(
+        ReceiverUdpPort,
+        saveBinPath,
+        !readBinMode
+    );
+
+    if (readBinMode)
+    {
+        rawReplayFile.setFileName(
+            readBinPath
+        );
+
+        if (!rawReplayFile.open(QIODevice::ReadOnly))
+        {
+            qCritical()
+                << "Could not open raw packet replay file"
+                << readBinPath
+                << ":"
+                << rawReplayFile.errorString();
+
+            return 1;
+        }
+
+        qInfo()
+            << "Reading raw packets from"
+            << readBinPath;
+    }
 
     // QML engine.
     // This loads the QML module and creates the QML object tree.
@@ -218,6 +327,56 @@ int main(int argc, char *argv[])
         &FrameModel::setReceiverStatistics
     );
 
+    if (readBinMode)
+    {
+        rawReplayTimer.setInterval(
+            rawReplayIntervalMs
+        );
+
+        QObject::connect(
+            &rawReplayTimer,
+            &QTimer::timeout,
+            &udpReceiver,
+            [
+                &rawReplayFile,
+                &rawReplayTimer,
+                &udpReceiver
+            ]()
+            {
+                // Raw .bin replay is intentionally simple:
+                // each tick reads exactly one original UDP payload.
+                const QByteArray payload =
+                    rawReplayFile.read(
+                        PacketDecoder::RawThermalPacketSize
+                    );
+
+                if (payload.isEmpty())
+                {
+                    qInfo()
+                        << "Finished raw packet replay";
+
+                    rawReplayTimer.stop();
+                    return;
+                }
+
+                if (payload.size() != PacketDecoder::RawThermalPacketSize)
+                {
+                    qWarning()
+                        << "Ignoring trailing bytes in raw packet replay file:"
+                        << payload.size()
+                        << "bytes";
+
+                    rawReplayTimer.stop();
+                    return;
+                }
+
+                udpReceiver.processRawDatagram(
+                    payload
+                );
+            }
+        );
+    }
+
     // Load the QML UI.
     //
     // The C++ objects should be exposed before this call, because QML may access
@@ -226,6 +385,12 @@ int main(int argc, char *argv[])
         "PadawanViewer",
         "Main"
     );
+
+    if (readBinMode)
+    {
+        // Start replay after QML is loaded, so the first decoded frame has a UI waiting.
+        rawReplayTimer.start();
+    }
 
     // Start the Qt event loop.
     // From here on, signals, sockets, QML bindings, rendering, etc. happen.

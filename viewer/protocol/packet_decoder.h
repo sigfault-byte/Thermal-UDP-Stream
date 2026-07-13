@@ -16,6 +16,11 @@ class PacketDecoder
 // So later call PacketDecoder::decodeThermalFrame(...);
 // without constructing PacketDecoder decoder; ( that doesnt even exist :D)
 public:
+    // A raw .bin file is just these UDP payloads glued together.
+    // There is no extra file header, so replay reads exactly this many bytes.
+    static constexpr qsizetype RawThermalPacketSize =
+        18 + (32 * 24);
+
     // decode one complete UDP datagram into a ThermalFrame.
     // returns true when decoding succeeds.
     // returns false and fills errorMessage when validation fails.
