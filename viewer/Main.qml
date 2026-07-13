@@ -114,9 +114,13 @@ Window {
 
         //last row
         // Future chart / packet timing area.
-        TimingPanel {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 220
+        TemperatureGraph{
+        Layout.fillWidth: true
+        Layout.preferredHeight: 220
         }
+        // TimingPanel {
+        //     Layout.fillWidth: true
+        //     Layout.preferredHeight: 220
+        // }
     }
 }

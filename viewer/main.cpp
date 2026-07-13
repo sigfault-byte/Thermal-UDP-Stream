@@ -4,6 +4,8 @@
 #include <QTimer>
 #include <QtQml>
 
+#include <QDebug>
+
 #include "analysis/frame_statistics_calculator.h"
 #include "analysis/frame_timing_tracker.h"
 #include "detector/hotspot_settings.h"
@@ -12,6 +14,7 @@
 #include "network/udp_receiver.h"
 #include "detector/hotspot_detector.h"
 #include "detector/hotspot_settings.h"
+#include "timeseries/time_series_recorder.h"
 
 namespace
 {
@@ -30,8 +33,10 @@ int main(int argc, char *argv[])
     FrameTimingTracker frameTimingTracker;
     QTimer frameTimingRefreshTimer;
 
-    // create the settings data
-    // HotspotSettings hotspotSettings; -> now own by frame_model
+    //time serie test
+    TimeSeriesRecorder timeSeriesRecorder;
+    timeSeriesRecorder.start();
+
 
     // Backend network object.
     // It listens for UDP packets and emits thermalFrameReceived(...) when a valid
@@ -77,6 +82,11 @@ int main(int argc, char *argv[])
         ReceiverUdpPort
     );
 
+    engine.rootContext()->setContextProperty(
+        "timeSeriesRecorder",
+        &timeSeriesRecorder
+    );
+
     // Register the FrameModel C++ type name with QML.
     //
     // This does not expose the frameModel object.
@@ -113,6 +123,7 @@ int main(int argc, char *argv[])
         [
             &frameModel,
             &frameTimingTracker,
+            &timeSeriesRecorder,
             thermalImageProvider
         ](const ThermalFrame &frame)
         {
@@ -129,6 +140,12 @@ int main(int argc, char *argv[])
                 FrameStatisticsCalculator::calculate(
                     frame.pixels
                 );
+
+            timeSeriesRecorder.append(
+                frame.timestampMs,
+                statistics,
+                hotspot
+            );
 
             // Update QML-visible metadata.
             frameModel.setTimestampMs(

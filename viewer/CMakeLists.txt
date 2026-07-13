@@ -5,7 +5,7 @@ project(padawan_viewer LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Network)
+find_package(Qt6 REQUIRED COMPONENTS Quick Network Graphs)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -41,6 +41,10 @@ qt_add_executable(padawan_viewer
     detector/hotspot_detector.cpp
     detector/thermal_frame_constants.h
 
+    timeseries/thermal_time_series_sample.h
+    timeseries/time_series_recorder.h
+    timeseries/time_series_recorder.cpp
+
 )
 
 qt_add_qml_module(padawan_viewer
@@ -53,9 +57,11 @@ qt_add_qml_module(padawan_viewer
         qml/StatisticsPanel.qml
         qml/TimingPanel.qml
         qml/RawRollingSwitch.qml
+        qml/TemperatureGraph.qml
 )
 
 target_link_libraries(padawan_viewer
     PRIVATE Qt6::Quick
     PRIVATE Qt6::Network
+    PRIVATE Qt6::Graphs
 )
