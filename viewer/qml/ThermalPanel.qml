@@ -14,6 +14,10 @@ Rectangle {
     required property bool hotspotAboveRange
     required property real hotspotTemperatureCelsius
 
+    required property real hotspotCenterX
+    required property real hotspotCenterY
+    required property real hotspotRadiusPixels
+
     property string title: "Live thermal frame"
 
     property real pixelWidth:
@@ -29,7 +33,7 @@ Rectangle {
         (thermalImage.height - thermalImage.paintedHeight) / 2
 
     property int displayedHotspotX:
-        31 - frameModel.hotspotX
+        31 - hotspotX
 
     color: "#18181f"
     radius: 8
@@ -82,29 +86,78 @@ Rectangle {
 
             Rectangle {
                 id: hotspotMarker
-                visible:
-                    hotspotOverlaySwitch.checked
-                    && hotspotValid
+
+                property real pixelWidth:
+                    thermalImage.paintedWidth / 32
+
+                property real pixelHeight:
+                    thermalImage.paintedHeight / 24
+
+                property real imageOffsetX:
+                    (thermalImage.width - thermalImage.paintedWidth) / 2
+
+                property real imageOffsetY:
+                    (thermalImage.height - thermalImage.paintedHeight) / 2
+
+                property real displayedCenterX:
+                    31 - frameModel.hotspotCenterX
+
+                property real radiusX:
+                    frameModel.hotspotRadiusPixels * pixelWidth
+
+                property real radiusY:
+                    frameModel.hotspotRadiusPixels * pixelHeight
 
                 x: thermalImage.x
                    + imageOffsetX
-                   + displayedHotspotX * pixelWidth
+                   + displayedCenterX * pixelWidth
+                   - radiusX
 
                 y: thermalImage.y
                    + imageOffsetY
-                   + hotspotY * pixelHeight
+                   + frameModel.hotspotCenterY * pixelHeight
+                   - radiusY
 
-                width: pixelWidth
-                height: pixelHeight
+                width: radiusX * 2
+                height: radiusY * 2
 
+                radius: width / 2
 
+                visible:
+                    hotspotOverlaySwitch.checked
+                    && frameModel.hotspotValid
 
                 color: "transparent"
                 border.color: "red"
                 border.width: 2
-
                 z: 10
             }
+
+            // Rectangle {
+            //     id: hotspotMarker
+            //     visible:
+            //         hotspotOverlaySwitch.checked
+            //         && hotspotValid
+
+            //     x: thermalImage.x
+            //        + imageOffsetX
+            //        + displayedHotspotX * pixelWidth
+
+            //     y: thermalImage.y
+            //        + imageOffsetY
+            //        + hotspotY * pixelHeight
+
+            //     width: pixelWidth
+            //     height: pixelHeight
+
+
+
+            //     color: "transparent"
+            //     border.color: "red"
+            //     border.width: 2
+
+            //     z: 10
+            // }
         }
     }
 }

@@ -71,11 +71,14 @@ Window {
                     + frameModel.imageRevision
                     hotspotValid: frameModel.hotspotValid
 
-                    hotspotX: frameModel.hotspotX
-                    hotspotY: frameModel.hotspotY
-                    hotspotAboveRange: frameModel.hotspotAboveRange
+                    hotspotX: frameModel.hotspotPeakX
+                    hotspotY: frameModel.hotspotPeakY
+                    hotspotAboveRange: frameModel.hotspotPeakAboveRange
                     hotspotTemperatureCelsius:
-                        frameModel.hotspotTemperatureCelsius
+                        frameModel.hotspotPeakTemperatureCelsius
+                    hotspotCenterX: frameModel.hotspotCenterX
+                    hotspotCenterY: frameModel.hotspotCenterY
+                    hotspotRadiusPixels: frameModel.hotspotRadiusPixels
             }
 
             // Statistics and controls panel.

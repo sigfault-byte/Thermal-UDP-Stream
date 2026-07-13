@@ -247,22 +247,52 @@ bool FrameModel::hotspotValid() const
     return m_hotspot.valid;
 }
 
-int FrameModel::hotspotX() const
+int FrameModel::hotspotPeakX() const
 {
-    return m_hotspot.x;
+    return m_hotspot.peakX;
 }
 
-int FrameModel::hotspotY() const
+int FrameModel::hotspotPeakY() const
 {
-    return m_hotspot.y;
+    return m_hotspot.peakY;
 }
 
-double FrameModel::hotspotTemperatureCelsius() const
+double FrameModel::hotspotPeakTemperatureCelsius() const
 {
-    return m_hotspot.temperatureCelsius;
+    return m_hotspot.peakTemperatureCelsius;
 }
 
-bool FrameModel::hotspotAboveRange() const
+bool FrameModel::hotspotPeakAboveRange() const
 {
-    return m_hotspot.aboveRange;
+    return m_hotspot.peakAboveRange;
+}
+
+double FrameModel::hotspotCenterX() const
+{
+    return m_hotspot.centerX;
+}
+
+double FrameModel::hotspotCenterY() const
+{
+    return m_hotspot.centerY;
+}
+
+double FrameModel::hotspotRadiusPixels() const
+{
+    return m_hotspot.radiusPixels;
+}
+
+int FrameModel::hotspotHotPixelCount() const
+{
+    return m_hotspot.hotPixelCount;
+}
+
+int FrameModel::hotspotTotalPixelCount() const
+{
+    return m_hotspot.totalPixelCount;
+}
+
+double FrameModel::hotspotScore() const
+{
+    return m_hotspot.score;
 }

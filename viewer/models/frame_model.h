@@ -153,26 +153,59 @@ class FrameModel : public QObject
     )
 
     Q_PROPERTY(
-        int hotspotX
-        READ hotspotX
+        int hotspotPeakX
+        READ hotspotPeakX
         NOTIFY hotspotChanged
     )
 
     Q_PROPERTY(
-        int hotspotY
-        READ hotspotY
+        int hotspotPeakY
+        READ hotspotPeakY
         NOTIFY hotspotChanged
     )
 
     Q_PROPERTY(
-        double hotspotTemperatureCelsius
-        READ hotspotTemperatureCelsius
+        double hotspotPeakTemperatureCelsius
+        READ hotspotPeakTemperatureCelsius
         NOTIFY hotspotChanged
     )
 
     Q_PROPERTY(
-        bool hotspotAboveRange
-        READ hotspotAboveRange
+        bool hotspotPeakAboveRange
+        READ hotspotPeakAboveRange
+        NOTIFY hotspotChanged
+    )
+
+    // double hotspotScore() const;
+
+    Q_PROPERTY(
+        double hotspotCenterX
+        READ hotspotCenterX
+        NOTIFY hotspotChanged
+    )
+    Q_PROPERTY(
+        double hotspotCenterY
+        READ hotspotCenterY
+        NOTIFY hotspotChanged
+    )
+    Q_PROPERTY(
+        double hotspotRadiusPixels
+        READ hotspotRadiusPixels
+        NOTIFY hotspotChanged
+    )
+    Q_PROPERTY(
+        int hotspotHotPixelCount
+        READ hotspotHotPixelCount
+        NOTIFY hotspotChanged
+    )
+    Q_PROPERTY(
+        int hotspotTotalPixelCount
+        READ hotspotTotalPixelCount
+        NOTIFY hotspotChanged
+    )
+    Q_PROPERTY(
+        double hotspotScore
+        READ hotspotScore
         NOTIFY hotspotChanged
     )
 
@@ -239,11 +272,18 @@ public:
     quint32 cameraFrameIntervalMs() const;
     double receivedFramesPerSecond() const;
 
+    //hotspot value
     bool hotspotValid() const;
-    int hotspotX() const;
-    int hotspotY() const;
-    double hotspotTemperatureCelsius() const;
-    bool hotspotAboveRange() const;
+    int hotspotPeakX() const;
+    int hotspotPeakY() const;
+    double hotspotPeakTemperatureCelsius() const;
+    bool hotspotPeakAboveRange() const;
+    double hotspotCenterX() const;
+    double hotspotCenterY() const;
+    double hotspotRadiusPixels() const;
+    int hotspotHotPixelCount() const;
+    int hotspotTotalPixelCount() const;
+    double hotspotScore() const;
 
     void setHotspot(const Hotspot &hotspot);
 
