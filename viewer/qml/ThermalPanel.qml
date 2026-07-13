@@ -62,6 +62,93 @@ Rectangle {
                 checked: false
             }
         }
+        Rectangle {
+            Layout.fillWidth: true
+            visible: hotspotOverlaySwitch.checked
+
+            implicitHeight: settingsLayout.implicitHeight + 20
+
+            color: "#202028"
+            radius: 6
+
+            RowLayout {
+                id: settingsLayout
+
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 16
+
+                // Controls here.
+                RowLayout {
+                    Text {
+                        text:
+                            "Tolerance: "
+                            + frameModel.hotspotTemperatureToleranceCelsius.toFixed(1)
+                            + " °C"
+
+                        color: "white"
+                    }
+
+                    Slider {
+                        from: 0.1
+                        to: 5.0
+                        stepSize: 0.1
+
+                        value:
+                            frameModel.hotspotTemperatureToleranceCelsius
+
+                        onMoved:
+                            frameModel.hotspotTemperatureToleranceCelsius =
+                                value
+                    }
+                    ColumnLayout {
+                        Text {
+                            text:
+                                "Cold penalty: "
+                                + frameModel.hotspotColdPixelPenalty.toFixed(1)
+
+                            color: "white"
+                        }
+
+                        Slider {
+                            from: 0.0
+                            to: 5.0
+                            stepSize: 0.1
+
+                            value:
+                                frameModel.hotspotColdPixelPenalty
+
+                            onMoved:
+                                frameModel.hotspotColdPixelPenalty =
+                                    value
+                        }
+                    }
+                    ColumnLayout {
+                        Text {
+                            text:
+                                "Max radius: "
+                                + frameModel.hotspotMaximumRadiusPixels
+                                + " px"
+
+                            color: "white"
+                        }
+
+                        Slider {
+                            from: 1
+                            to: 20
+                            stepSize: 1
+
+                            value:
+                                frameModel.hotspotMaximumRadiusPixels
+
+                            onMoved:
+                                frameModel.hotspotMaximumRadiusPixels =
+                                    Math.round(value)
+                        }
+                    }
+                }
+            }
+        }
 
         Rectangle {
             id: imageContainer

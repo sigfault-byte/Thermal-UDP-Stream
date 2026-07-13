@@ -6,10 +6,12 @@
 
 #include "analysis/frame_statistics_calculator.h"
 #include "analysis/frame_timing_tracker.h"
+#include "detector/hotspot_settings.h"
 #include "image/thermal_image_provider.h"
 #include "models/frame_model.h"
 #include "network/udp_receiver.h"
 #include "detector/hotspot_detector.h"
+#include "detector/hotspot_settings.h"
 
 namespace
 {
@@ -27,6 +29,9 @@ int main(int argc, char *argv[])
     FrameModel frameModel;
     FrameTimingTracker frameTimingTracker;
     QTimer frameTimingRefreshTimer;
+
+    // create the settings data
+    // HotspotSettings hotspotSettings; -> now own by frame_model
 
     // Backend network object.
     // It listens for UDP packets and emits thermalFrameReceived(...) when a valid
@@ -100,6 +105,7 @@ int main(int argc, char *argv[])
     // 1. FrameModel: metadata and statistics visible to QML.
     // 2. ThermalImageProvider: actual image pixels used by image://thermal.
     // 3. FrameModel image revision: tells QML that the image should be requested again.
+    // 4. hotspotSettings : default settings for the hotspot.
     QObject::connect(
         &udpReceiver,
         &UdpReceiver::thermalFrameReceived,
@@ -116,7 +122,7 @@ int main(int argc, char *argv[])
                 );
 
             const Hotspot hotspot =
-                HotspotDetector::detect(frame.pixels);
+                HotspotDetector::detect(frame.pixels, frameModel.hotspotSettings());
 
             // Compute min/max/other statistics from the raw pixel bytes.
             const FrameStatistics statistics =

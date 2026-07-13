@@ -209,6 +209,28 @@ class FrameModel : public QObject
         NOTIFY hotspotChanged
     )
 
+    // hotspot_settings
+    Q_PROPERTY(
+        double hotspotTemperatureToleranceCelsius
+        READ hotspotTemperatureToleranceCelsius
+        WRITE setHotspotTemperatureToleranceCelsius
+        NOTIFY hotspotSettingsChanged
+    )
+
+    Q_PROPERTY(
+        double hotspotColdPixelPenalty
+        READ hotspotColdPixelPenalty
+        WRITE setHotspotColdPixelPenalty
+        NOTIFY hotspotSettingsChanged
+    )
+
+    Q_PROPERTY(
+        int hotspotMaximumRadiusPixels
+        READ hotspotMaximumRadiusPixels
+        WRITE setHotspotMaximumRadiusPixels
+        NOTIFY hotspotSettingsChanged
+    )
+
 public:
     // The enum belongs to FrameModel and is exposed to Qt/QML.
         enum class ScaleMode
@@ -285,6 +307,16 @@ public:
     int hotspotTotalPixelCount() const;
     double hotspotScore() const;
 
+    // settings
+    const HotspotSettings &hotspotSettings() const;
+    double hotspotTemperatureToleranceCelsius() const;
+    double hotspotColdPixelPenalty() const;
+    int hotspotMaximumRadiusPixels() const;
+
+    void setHotspotTemperatureToleranceCelsius(double value);
+    void setHotspotColdPixelPenalty(double value);
+    void setHotspotMaximumRadiusPixels(int value);
+
     void setHotspot(const Hotspot &hotspot);
 
 signals:
@@ -300,6 +332,7 @@ signals:
     void frameTimingChanged();
 
     void hotspotChanged();
+    void hotspotSettingsChanged();
 
 private:
     int m_frameId = 0;
@@ -313,6 +346,7 @@ private:
     quint32 m_timestampMs = 0;
 
     Hotspot m_hotspot;
+    HotspotSettings m_hotspotSettings;
 };
 
 #endif

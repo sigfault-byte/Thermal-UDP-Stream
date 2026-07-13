@@ -1,5 +1,7 @@
 #include "frame_model.h"
 
+#include <algorithm>
+
 FrameModel::FrameModel(QObject *parent)
     : QObject(parent)
 {
@@ -295,4 +297,87 @@ int FrameModel::hotspotTotalPixelCount() const
 double FrameModel::hotspotScore() const
 {
     return m_hotspot.score;
+}
+
+const HotspotSettings &FrameModel::hotspotSettings() const
+{
+    return m_hotspotSettings;
+}
+
+double FrameModel::hotspotTemperatureToleranceCelsius() const
+{
+    return m_hotspotSettings.temperatureToleranceCelsius;
+}
+
+double FrameModel::hotspotColdPixelPenalty() const
+{
+    return m_hotspotSettings.coldPixelPenalty;
+}
+
+int FrameModel::hotspotMaximumRadiusPixels() const
+{
+    return m_hotspotSettings.maximumRadiusPixels;
+}
+
+void FrameModel::setHotspotTemperatureToleranceCelsius(
+    double value
+)
+{
+    const double clampedValue =
+        std::clamp(value, 0.1, 5.0);
+
+    if (
+        qFuzzyCompare(
+            m_hotspotSettings.temperatureToleranceCelsius,
+            clampedValue
+        )
+    )
+    {
+        return;
+    }
+
+    m_hotspotSettings.temperatureToleranceCelsius =
+        clampedValue;
+
+    emit hotspotSettingsChanged();
+}
+
+void FrameModel::setHotspotColdPixelPenalty(double value)
+{
+    const double clampedValue =
+        std::clamp(value, 0.0, 10.0);
+
+    if (
+        qFuzzyCompare(
+            m_hotspotSettings.coldPixelPenalty,
+            clampedValue
+        )
+    )
+    {
+        return;
+    }
+
+    m_hotspotSettings.coldPixelPenalty =
+        clampedValue;
+
+    emit hotspotSettingsChanged();
+}
+
+void FrameModel::setHotspotMaximumRadiusPixels(int value)
+{
+    const int clampedValue =
+        std::clamp(value, 1, 20);
+
+    if (
+        m_hotspotSettings.maximumRadiusPixels
+        == clampedValue
+    )
+    {
+        return;
+    }
+
+    m_hotspotSettings.maximumRadiusPixels =
+        clampedValue;
+
+    emit hotspotSettingsChanged();
 }
