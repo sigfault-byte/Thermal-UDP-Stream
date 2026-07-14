@@ -46,9 +46,10 @@ Rectangle {
     signal commandButtonClicked()
     signal quantizationModeRequested(int mode)
 
-    property string title: "Padawan Thermal Viewer"
     property string udpEndpointText:
-        "UDP(port " + root.udpPort + ")"
+        "UDP:" + root.udpPort
+    property string udpStatusText:
+        root.udpEndpointText + " " + root.udpStateText
     property string tcpStateText:
         root.hasTcpEndpoint
             ? "TCP: " + root.tcpEndpointText
@@ -95,105 +96,48 @@ Rectangle {
     RowLayout {
         anchors.fill: parent
         anchors.margins: 16
-        spacing: 24
+        spacing: 16
 
-        RowLayout {
-            Layout.maximumWidth: root.width * 0.46
-            Layout.minimumWidth: 0
-            spacing: 12
+        // Primary stream command comes first in the instrument strip.
+        Rectangle {
+            id: commandButton
+
+            Layout.preferredWidth: 86
+            Layout.preferredHeight: 34
+
+            radius: 6
+            color: root.commandButtonColor
+            opacity: root.canSendCommand
+                ? 1.0
+                : 0.65
 
             Text {
-                Layout.maximumWidth: root.width * 0.32
-                Layout.minimumWidth: 0
-                text: root.title
+                anchors.fill: parent
+                anchors.margins: 6
+                text: root.commandButtonText
                 color: "white"
-                font.pixelSize: 22
+                font.pixelSize: 14
                 font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
             }
 
-            // Single camera command button.
-            // Keep this near the title so the primary action is easy to find.
-            Rectangle {
-                id: commandButton
+            MouseArea {
+                anchors.fill: parent
+                enabled: root.canSendCommand
+                cursorShape: Qt.PointingHandCursor
 
-                Layout.preferredWidth: 86
-                Layout.preferredHeight: 34
-
-                radius: 6
-                color: root.commandButtonColor
-                opacity: root.canSendCommand
-                    ? 1.0
-                    : 0.65
-
-                Text {
-                    anchors.fill: parent
-                    anchors.margins: 6
-                    text: root.commandButtonText
-                    color: "white"
-                    font.pixelSize: 14
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    enabled: root.canSendCommand
-                    cursorShape: Qt.PointingHandCursor
-
-                    onClicked: {
-                        root.commandButtonClicked()
-                    }
+                onClicked: {
+                    root.commandButtonClicked()
                 }
             }
         }
 
-        Item {
-            Layout.fillWidth: true
-        }
-
         ColumnLayout {
-            Layout.maximumWidth: 130
+            Layout.maximumWidth: 220
             Layout.minimumWidth: 0
             spacing: 2
-
-            // Existing thermal frame UDP status.
-            // The port and receive state stay together so the status reads as one unit.
-            Text {
-                Layout.fillWidth: true
-                text: root.udpEndpointText
-                color: "#d8d8df"
-                font.pixelSize: 15
-                elide: Text.ElideRight
-            }
-
-            Text {
-                Layout.fillWidth: true
-                text: root.udpStateText
-                color: root.udpStateColor
-                font.pixelSize: 15
-                font.bold: root.isReceivingFrames || root.isStreamStale
-                elide: Text.ElideRight
-            }
-        }
-
-        ColumnLayout {
-            Layout.maximumWidth: 190
-            Layout.minimumWidth: 0
-            spacing: 2
-
-            // Newly discovered TCP command endpoint status.
-            // This only means an endpoint is prepared; no TCP socket is open yet.
-            Text {
-                Layout.fillWidth: true
-                text: root.tcpStateText
-                color: root.tcpStateColor
-                font.pixelSize: 15
-                font.bold: root.hasTcpEndpoint
-                elide: Text.ElideRight
-            }
 
             // Display the mode reported by the newest UDP frame.
             // This is the real current quantization mode for visible pixels.
@@ -204,58 +148,85 @@ Rectangle {
                 font.pixelSize: 14
                 elide: Text.ElideRight
             }
-        }
 
-        RowLayout {
-            Layout.maximumWidth: 160
-            Layout.minimumWidth: 0
-            spacing: 4
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
 
-            Repeater {
-                model: root.quantizationOptions
+                Repeater {
+                    model: root.quantizationOptions
 
-                Rectangle {
-                    Layout.preferredWidth: 48
-                    Layout.preferredHeight: 22
-                    radius: 4
+                    Rectangle {
+                        Layout.preferredWidth: 48
+                        Layout.preferredHeight: 22
+                        radius: 4
 
-                    // Highlight the mode from the last received frame.
-                    // Disable clicks while any TCP command is pending.
-                    color: modelData.mode === root.quantizationMode
-                        ? "#2f9e44"
-                        : "#444451"
-                    opacity: root.canSendCommand
-                        ? 1.0
-                        : 0.55
+                        // Highlight the mode from the last received frame.
+                        // Disable clicks while any TCP command is pending.
+                        color: modelData.mode === root.quantizationMode
+                            ? "#2f9e44"
+                            : "#444451"
+                        opacity: root.canSendCommand
+                            ? 1.0
+                            : 0.55
 
-                    Text {
-                        anchors.fill: parent
-                        anchors.margins: 3
-                        text: modelData.label
-                        color: "white"
-                        font.pixelSize: 11
-                        font.bold:
-                            modelData.mode === root.quantizationMode
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        elide: Text.ElideRight
-                    }
+                        Text {
+                            anchors.fill: parent
+                            anchors.margins: 3
+                            text: modelData.label
+                            color: "white"
+                            font.pixelSize: 11
+                            font.bold:
+                                modelData.mode === root.quantizationMode
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
 
-                    MouseArea {
-                        anchors.fill: parent
-                        enabled:
-                            root.canSendCommand
-                            && modelData.mode !== root.quantizationMode
-                        cursorShape: Qt.PointingHandCursor
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled:
+                                root.canSendCommand
+                                && modelData.mode !== root.quantizationMode
+                            cursorShape: Qt.PointingHandCursor
 
-                        onClicked: {
-                            root.quantizationModeRequested(
-                                modelData.mode
-                            )
+                            onClicked: {
+                                root.quantizationModeRequested(
+                                    modelData.mode
+                                )
+                            }
                         }
                     }
                 }
             }
+        }
+
+        ColumnLayout{
+            Layout.fillWidth: true
+
+            Text {
+                Layout.maximumWidth: 130
+                Layout.minimumWidth: 0
+                text: root.udpStatusText
+                color: root.udpStateColor
+                font.pixelSize: 16
+                font.bold: root.isReceivingFrames || root.isStreamStale
+
+            }
+
+            Text {
+                Layout.maximumWidth: 220
+                Layout.minimumWidth: 0
+                text: root.tcpStateText
+                color: root.tcpStateColor
+                font.pixelSize: 16
+                font.bold: root.hasTcpEndpoint
+
+            }
+        }
+
+        Item {
+            Layout.fillWidth: true
         }
 
         Text {
