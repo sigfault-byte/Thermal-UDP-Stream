@@ -157,7 +157,8 @@ bool CommandPacket::isSupportedCommand(
 {
     return command == StartCommand
         || command == StopCommand
-        || command == SetQuantizationCommand;
+        || command == SetQuantizationCommand
+        || command == SetRefreshRateCommand;
 }
 
 bool CommandPacket::isSupportedStatus(
@@ -186,6 +187,11 @@ QString CommandPacket::commandName(
     if (command == SetQuantizationCommand)
     {
         return "SET_QUANTIZATION";
+    }
+
+    if (command == SetRefreshRateCommand)
+    {
+        return "SET_REFRESH_RATE";
     }
 
     return QString("UNKNOWN(%1)")

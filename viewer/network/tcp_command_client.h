@@ -74,6 +74,13 @@ class TcpCommandClient : public QObject
         NOTIFY commandStateChanged
     )
 
+    // Viewer-side belief about the selected MLX90640 refresh rate.
+    Q_PROPERTY(
+        int refreshRateHz
+        READ refreshRateHz
+        NOTIFY commandStateChanged
+    )
+
 public:
     // Construct the endpoint-state shell.
     // This class owns the TCP socket used for command packets.
@@ -99,6 +106,7 @@ public:
     bool cameraRunning() const;
     QString commandButtonText() const;
     QString commandButtonColor() const;
+    int refreshRateHz() const;
 
     // Send the START command from QML.
     // The UI remains pending until the ESP32 response is received.
@@ -112,6 +120,12 @@ public:
     // mode must be 1, 2, or 3; the UDP frame mode remains the display truth.
     Q_INVOKABLE void sendSetQuantizationCommand(
         int mode
+    );
+
+    // Send the SET_REFRESH_RATE command from QML.
+    // hz must be 1 or 8; the packet timing display remains the measured truth.
+    Q_INVOKABLE void sendSetRefreshRateCommand(
+        int hz
     );
 
 signals:
@@ -168,6 +182,7 @@ private:
     quint8 m_pendingCommand = 0;
     quint8 m_pendingCommandValue = 0;
     bool m_cameraRunning = false;
+    int m_refreshRateHz = 1;
 };
 
 #endif

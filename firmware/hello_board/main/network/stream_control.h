@@ -10,6 +10,7 @@
  *
  *   - The TCP command task receives START/STOP packets from the Qt viewer.
  *   - The TCP command task also receives SET_QUANTIZATION packets.
+ *   - The TCP command task also receives SET_REFRESH_RATE packets.
  *   - The UDP sender task reads camera frames and sends them to the viewer.
  *
  * Those are two different FreeRTOS tasks, so they can run at different moments.
@@ -75,3 +76,16 @@ void stream_control_set_quantization_mode(uint8_t mode);
  * Called by the UDP sender before quantizing each frame.
  */
 uint8_t stream_control_get_quantization_mode(void);
+
+/*
+ * Store the currently selected MLX90640 refresh rate in Hz.
+ *
+ * The TCP task changes the sensor register, then stores the accepted value here
+ * so the rest of the firmware has one shared "what did we request?" state.
+ */
+void stream_control_set_refresh_rate_hz(uint8_t refresh_rate_hz);
+
+/*
+ * Return a snapshot of the last accepted refresh rate command.
+ */
+uint8_t stream_control_get_refresh_rate_hz(void);

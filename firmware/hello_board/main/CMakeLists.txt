@@ -11,6 +11,8 @@ idf_component_register(SRCS "main.c"
                             "protocol/handshake_packet.c"
                             "protocol/thermal_packet.c"
                             "camera/mlx90640_i2c_adapter.c"
+                            "camera/mlx90640_runtime.c"
                             "camera/MLX90640_API.c"
                             "utils/quantization.c"
+                            "utils/refresh_rate.c"
                        INCLUDE_DIRS ".")

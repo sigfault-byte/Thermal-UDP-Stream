@@ -12,6 +12,7 @@
 #define COMMAND_START 1
 #define COMMAND_STOP 2
 #define COMMAND_SET_QUANTIZATION 3
+#define COMMAND_SET_REFRESH_RATE 4
 
 #define COMMAND_STATUS_OK 1
 #define COMMAND_STATUS_ERROR 2
@@ -24,7 +25,7 @@
  *
  *   magic[8] -> "PADAWAN\0"
  *   version  -> 0x01
- *   command  -> START, STOP, future commands
+ *   command  -> START, STOP, SET_QUANTIZATION, SET_REFRESH_RATE
  *   value    -> command parameter, or 0 when unused
  */
 typedef struct __attribute__((packed)) {

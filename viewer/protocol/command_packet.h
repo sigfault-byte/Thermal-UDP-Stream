@@ -23,6 +23,7 @@ public:
     static constexpr quint8 StartCommand = 1;
     static constexpr quint8 StopCommand = 2;
     static constexpr quint8 SetQuantizationCommand = 3;
+    static constexpr quint8 SetRefreshRateCommand = 4;
 
     // Response status byte values shared with the ESP32 firmware.
     static constexpr quint8 StatusOk = 1;

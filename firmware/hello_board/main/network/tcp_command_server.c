@@ -15,7 +15,12 @@
 #include "esp_log.h"
 #include "network/stream_control.h"
 #include "protocol/command_packet.h"
+#include "camera/MLX90640_API.h"
+#include "camera/mlx90640_runtime.h"
 #include "utils/quantization.h"
+#include "utils/refresh_rate.h"
+
+#define MLX90640_ADDR 0x33
 
 /*
  * This is the command TCP port.
@@ -184,6 +189,48 @@ static bool process_command_packet(
         if (packet.command == COMMAND_SET_QUANTIZATION) {
             if (quantization_mode_is_valid(packet.value)) {
                 stream_control_set_quantization_mode(packet.value);
+            } else {
+                status = COMMAND_STATUS_INVALID_VALUE;
+            }
+        }
+
+        /*
+         * SET_REFRESH_RATE changes the MLX90640 sensor refresh rate.
+         *
+         * The packet value uses the readable rate in Hz:
+         *
+         *   1 -> MLX90640 register code 1 -> 1 Hz
+         *   8 -> MLX90640 register code 4 -> 8 Hz
+         *
+         * This does not change the UDP thermal packet format. The viewer can
+         * simply consume frames at the speed they arrive.
+         */
+        if (packet.command == COMMAND_SET_REFRESH_RATE) {
+            if (refresh_rate_is_valid(packet.value)) {
+                uint8_t mlx_refresh_code =
+                    refresh_rate_to_mlx90640_code(packet.value);
+
+                int err = mlx90640_runtime_set_refresh_rate(
+                    MLX90640_ADDR,
+                    mlx_refresh_code
+                );
+
+                if (err == MLX90640_NO_ERROR) {
+                    stream_control_set_refresh_rate_hz(packet.value);
+                    ESP_LOGI(
+                        TAG,
+                        "MLX90640 refresh requested=%u Hz code=%u",
+                        packet.value,
+                        mlx_refresh_code
+                    );
+                } else {
+                    status = COMMAND_STATUS_ERROR;
+                    ESP_LOGE(
+                        TAG,
+                        "MLX90640_SetRefreshRate failed: %d",
+                        err
+                    );
+                }
             } else {
                 status = COMMAND_STATUS_INVALID_VALUE;
             }

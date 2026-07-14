@@ -13,6 +13,7 @@
 #include "protocol/thermal_packet.h"
 #include "camera/camera_i2c.h"
 #include "camera/MLX90640_API.h"
+#include "camera/mlx90640_runtime.h"
 #include "utils/quantization.h"
 
 #define DEST_PORT 5005
@@ -68,7 +69,7 @@ void udp_sender_task(void *pvParameters)
             int have1 = 0;
 
             while (stream_control_is_running() && (!have0 || !have1)) {
-                int subpage = MLX90640_GetFrameData(0x33, frameData);
+                int subpage = mlx90640_runtime_get_frame_data(0x33, frameData);
                 if (subpage < 0) {
                     ESP_LOGW(TAG, "Failed to read MLX90640 frame: %d", subpage);
                     continue;

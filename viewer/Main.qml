@@ -64,6 +64,9 @@ Window {
             // Display the human range for the latest UDP frame mode.
             quantizationRangeText: frameModel.quantizationRangeText
 
+            // Display the refresh rate most recently acknowledged by the ESP32.
+            refreshRateHz: tcpCommandClient.refreshRateHz
+
             onCommandButtonClicked: {
                 // Toggle based on the last acknowledged ESP32 running state.
                 if (tcpCommandClient.cameraRunning) {
@@ -75,6 +78,10 @@ Window {
 
             onQuantizationModeRequested: mode => {
                 tcpCommandClient.sendSetQuantizationCommand(mode)
+            }
+
+            onRefreshRateRequested: hz => {
+                tcpCommandClient.sendSetRefreshRateCommand(hz)
             }
 
             hasReceivedFrameInterval:

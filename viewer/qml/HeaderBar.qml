@@ -43,8 +43,13 @@ Rectangle {
     // Human-readable range for the latest UDP thermal frame mode.
     required property string quantizationRangeText
 
+    // Viewer-side selected refresh rate.
+    // The packet timing fields remain the measured runtime truth.
+    required property int refreshRateHz
+
     signal commandButtonClicked()
     signal quantizationModeRequested(int mode)
+    signal refreshRateRequested(int hz)
 
     property string udpEndpointText:
         "UDP:" + root.udpPort
@@ -86,6 +91,10 @@ Rectangle {
         { "mode": 1, "label": "10-45" },
         { "mode": 2, "label": "20-60" },
         { "mode": 3, "label": "0-100" }
+    ]
+    property var refreshRateOptions: [
+        { "hz": 1, "label": "1 Hz" },
+        { "hz": 8, "label": "8 Hz" }
     ]
 
     color: "#1b1b22"
@@ -195,6 +204,58 @@ Rectangle {
                                     modelData.mode
                                 )
                             }
+                        }
+                    }
+                }
+            }
+        }
+
+        ColumnLayout {
+            Layout.maximumWidth: 54
+            Layout.minimumWidth: 0
+            spacing: 4
+
+            Repeater {
+                model: root.refreshRateOptions
+
+                Rectangle {
+                    Layout.preferredWidth: 52
+                    Layout.preferredHeight: 18
+                    radius: 4
+
+                    // The camera defaults to 1 Hz on boot.
+                    // Highlight the refresh rate the viewer last had acknowledged.
+                    color: modelData.hz === root.refreshRateHz
+                        ? "#2f9e44"
+                        : "#444451"
+                    opacity: root.canSendCommand
+                        ? 1.0
+                        : 0.55
+
+                    Text {
+                        anchors.fill: parent
+                        anchors.margins: 2
+                        text: modelData.label
+                        color: "white"
+                        font.pixelSize: 11
+                        font.bold:
+                            modelData.hz === root.refreshRateHz
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled:
+                            root.canSendCommand
+                            && modelData.hz !== root.refreshRateHz
+                        cursorShape: Qt.PointingHandCursor
+
+                        onClicked: {
+                            root.refreshRateRequested(
+                                modelData.hz
+                            )
                         }
                     }
                 }

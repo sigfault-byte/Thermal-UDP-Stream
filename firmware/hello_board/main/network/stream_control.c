@@ -5,6 +5,7 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 #include "utils/quantization.h"
+#include "utils/refresh_rate.h"
 
 #define STREAM_CONTROL_STARTED_BIT BIT0
 
@@ -18,10 +19,12 @@ static const char *TAG = "stream_control";
  *   - TCP command task:
  *       writes is_running and destination_addr when START/STOP arrives.
  *       writes quantization_mode when SET_QUANTIZATION arrives.
+ *       writes refresh_rate_hz after SET_REFRESH_RATE changes the camera.
  *
  *   - UDP sender task:
  *       reads is_running and destination_addr before sending frames.
  *       reads quantization_mode before encoding pixels.
+ *       may read refresh_rate_hz later if packets or diagnostics need it.
  *
  * Without a mutex, one task could read these variables while the other task is
  * halfway through changing them. That is the multithreading problem here.
@@ -62,10 +65,15 @@ static EventGroupHandle_t state_events;
  * quantization_mode:
  *   The range used to compress temperatures into one byte.
  *   Default is mode 1, the original 10-45 C range.
+ *
+ * refresh_rate_hz:
+ *   The last accepted viewer-facing sensor refresh rate.
+ *   This stores the command value, not the MLX90640 register code.
  */
 static bool is_running;
 static uint32_t destination_addr;
 static uint8_t quantization_mode;
+static uint8_t refresh_rate_hz;
 
 void stream_control_init(void)
 {
@@ -88,6 +96,7 @@ void stream_control_init(void)
     is_running = false;
     destination_addr = 0;
     quantization_mode = QUANTIZATION_MODE_10_45;
+    refresh_rate_hz = REFRESH_RATE_1_HZ;
 
     /*
      * Make sure the START bit is clear, so stream_control_wait_started()
@@ -254,4 +263,39 @@ uint8_t stream_control_get_quantization_mode(void)
     xSemaphoreGive(state_mutex);
 
     return mode;
+}
+
+void stream_control_set_refresh_rate_hz(uint8_t rate_hz)
+{
+    /*
+     * The TCP command handler validates the rate and successfully writes the
+     * camera register before storing the value here.
+     *
+     * This function only updates shared firmware state. Keeping the I2C write
+     * outside the mutex avoids holding the control lock while waiting on the
+     * camera bus.
+     */
+    xSemaphoreTake(state_mutex, portMAX_DELAY);
+
+    refresh_rate_hz = rate_hz;
+
+    xSemaphoreGive(state_mutex);
+
+    ESP_LOGI(TAG, "Refresh rate set to %u Hz", rate_hz);
+}
+
+uint8_t stream_control_get_refresh_rate_hz(void)
+{
+    uint8_t rate_hz;
+
+    /*
+     * Return a snapshot, just like the quantization getter.
+     * If TCP changes the rate immediately after this returns, the caller will
+     * see the new value on its next read.
+     */
+    xSemaphoreTake(state_mutex, portMAX_DELAY);
+    rate_hz = refresh_rate_hz;
+    xSemaphoreGive(state_mutex);
+
+    return rate_hz;
 }

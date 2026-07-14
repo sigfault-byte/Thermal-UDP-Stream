@@ -13,6 +13,8 @@
 #include "camera/camera_i2c.h"
 #include "camera/MLX90640_I2C_Driver.h"
 #include "camera/MLX90640_API.h"
+#include "camera/mlx90640_runtime.h"
+#include "utils/refresh_rate.h"
 
 #define MLX90640_ADDR 0x33
 #define MLX90640_CONTROL_REG 0x800D
@@ -92,6 +94,29 @@ static bool mlx90640_load_calibration(void)
     return true;
 }
 
+static bool mlx90640_set_default_refresh_rate(void)
+{
+    /*
+     * Boot default is intentionally slow and friendly: 1 Hz.
+     *
+     * The TCP SET_REFRESH_RATE command can later switch this to 8 Hz.
+     * The MLX90640 API expects the compact register code, not the readable
+     * value used by the TCP packet.
+     */
+    int err = mlx90640_runtime_set_refresh_rate(
+        MLX90640_ADDR,
+        refresh_rate_to_mlx90640_code(REFRESH_RATE_1_HZ)
+    );
+
+    if (err != MLX90640_NO_ERROR) {
+        printf("MLX90640_SetRefreshRate default failed: %d\n", err);
+        return false;
+    }
+
+    printf("MLX90640 refresh default set to %u Hz\n", REFRESH_RATE_1_HZ);
+    return true;
+}
+
 void app_main(void)
 {
     printf("Hello from ESP32\n");
@@ -111,6 +136,14 @@ void app_main(void)
 
     if (!mlx90640_load_calibration()) {
         printf("Stopping: MLX90640 calibration load failed\n");
+        return;
+    }
+
+    printf("MLX90640 runtime init\n");
+    mlx90640_runtime_init();
+
+    if (!mlx90640_set_default_refresh_rate()) {
+        printf("Stopping: MLX90640 default refresh failed\n");
         return;
     }
 

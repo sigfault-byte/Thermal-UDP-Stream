@@ -183,6 +183,11 @@ QString TcpCommandClient::commandButtonColor() const
     return "#2f9e44";
 }
 
+int TcpCommandClient::refreshRateHz() const
+{
+    return m_refreshRateHz;
+}
+
 void TcpCommandClient::sendStartCommand()
 {
     sendCommand(
@@ -228,6 +233,25 @@ void TcpCommandClient::sendSetQuantizationCommand(
     sendCommand(
         CommandPacket::SetQuantizationCommand,
         static_cast<quint8>(mode)
+    );
+}
+
+void TcpCommandClient::sendSetRefreshRateCommand(
+    int hz
+)
+{
+    if (hz != 1 && hz != 8)
+    {
+        qWarning()
+            << "Cannot send unsupported refresh rate"
+            << hz;
+
+        return;
+    }
+
+    sendCommand(
+        CommandPacket::SetRefreshRateCommand,
+        static_cast<quint8>(hz)
     );
 }
 
@@ -404,6 +428,7 @@ void TcpCommandClient::writePendingCommand()
 
     // START and STOP use value 0.
     // SET_QUANTIZATION uses value 1, 2, or 3.
+    // SET_REFRESH_RATE uses value 1 or 8.
     const QByteArray request =
         CommandPacket::buildRequest(
             m_pendingCommand,
@@ -454,6 +479,16 @@ void TcpCommandClient::completePendingCommandOk()
             << "ESP32 accepted quantization mode"
             << m_pendingCommandValue
             << "- waiting for matching UDP frame mode";
+    }
+    else if (m_pendingCommand == CommandPacket::SetRefreshRateCommand)
+    {
+        m_refreshRateHz =
+            static_cast<int>(m_pendingCommandValue);
+
+        qInfo()
+            << "ESP32 accepted refresh rate"
+            << m_refreshRateHz
+            << "Hz";
     }
 
     qInfo()
