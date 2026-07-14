@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 
 // Top status bar.
 
@@ -138,19 +137,25 @@ Rectangle {
         }
 
         // Single camera command button.
-        // It is disabled while discovery is missing or a command response is pending.
-        Button {
+        // This is a plain Rectangle instead of a Qt Quick Controls Button,
+        // because the native macOS style does not allow background/contentItem
+        // customization without switching the whole app to a non-native style.
+        Rectangle {
+            id: commandButton
+
             Layout.preferredWidth: 86
             Layout.preferredHeight: 34
-            enabled: root.canSendCommand
-            text: root.commandButtonText
 
-            onClicked: {
-                root.commandButtonClicked()
-            }
+            radius: 6
+            color: root.commandButtonColor
+            opacity: root.canSendCommand
+                ? 1.0
+                : 0.65
 
-            contentItem: Text {
-                text: parent.text
+            Text {
+                anchors.fill: parent
+                anchors.margins: 6
+                text: root.commandButtonText
                 color: "white"
                 font.pixelSize: 14
                 font.bold: true
@@ -159,12 +164,14 @@ Rectangle {
                 elide: Text.ElideRight
             }
 
-            background: Rectangle {
-                radius: 6
-                color: root.commandButtonColor
-                opacity: parent.enabled
-                    ? 1.0
-                    : 0.65
+            MouseArea {
+                anchors.fill: parent
+                enabled: root.canSendCommand
+                cursorShape: Qt.PointingHandCursor
+
+                onClicked: {
+                    root.commandButtonClicked()
+                }
             }
         }
 
