@@ -18,8 +18,22 @@ qt_add_executable(padawan_viewer
     network/udp_receiver.cpp
     network/udp_receiver.h
 
+    # Discovery receiver and future TCP command endpoint state.
+    network/handshake_receiver.cpp
+    network/handshake_receiver.h
+    network/tcp_command_client.cpp
+    network/tcp_command_client.h
+
     protocol/packet_decoder.cpp
     protocol/packet_decoder.h
+
+    # Fixed 11-byte TCP command request/response protocol helpers.
+    protocol/command_packet.cpp
+    protocol/command_packet.h
+
+    # Fixed 10-byte Padawan UDP discovery handshake parser.
+    protocol/handshake_packet.cpp
+    protocol/handshake_packet.h
     protocol/thermal_frame.h
 
     image/thermal_image_provider.cpp

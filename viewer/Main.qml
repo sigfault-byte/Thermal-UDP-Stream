@@ -11,11 +11,17 @@ import QtQuick.Layouts
 import QtQuick.Controls
 
 Window {
+    id: mainWindow
+
     width: 1200
     height: 800
     visible: true
     title: "Padawan Thermal Viewer"
     color: "#101014"
+
+    // Copy the C++ context property into a window property.
+    // This avoids an ambiguous HeaderBar binding with the same property name.
+    property int padawanCommandTcpPort: commandTcpPort
 
     ColumnLayout {
         anchors.fill: parent
@@ -29,9 +35,38 @@ Window {
             Layout.preferredHeight: 64
 
             udpPort: receiverUdpPort
+
+            // Show the fixed command port until discovery fills in the IP.
+            commandTcpPort: mainWindow.padawanCommandTcpPort
+
             hasReceivedFrame: frameModel.hasReceivedFrame
             isReceivingFrames: frameModel.isReceivingFrames
             isStreamStale: frameModel.isStreamStale
+
+            // Show whether UDP discovery has prepared a TCP endpoint.
+            hasTcpEndpoint: tcpCommandClient.hasEndpoint
+
+            // Show the backend-formatted discovered "ip:port" endpoint.
+            tcpEndpointText: tcpCommandClient.endpointText
+
+            // Enable the command button only when the backend can send.
+            canSendCommand: tcpCommandClient.canSendCommand
+
+            // Let the backend provide START, STOP, or WAIT.
+            commandButtonText: tcpCommandClient.commandButtonText
+
+            // Let the backend provide active or pending button color.
+            commandButtonColor: tcpCommandClient.commandButtonColor
+
+            onCommandButtonClicked: {
+                // Toggle based on the last acknowledged ESP32 running state.
+                if (tcpCommandClient.cameraRunning) {
+                    tcpCommandClient.sendStopCommand()
+                } else {
+                    tcpCommandClient.sendStartCommand()
+                }
+            }
+
             hasReceivedFrameInterval:
                 frameModel.hasReceivedFrameInterval
             hasCameraFrameInterval:

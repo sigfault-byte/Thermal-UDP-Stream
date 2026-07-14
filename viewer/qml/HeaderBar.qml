@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 
 // Top status bar.
 
@@ -8,24 +9,54 @@ Rectangle {
 
     // what is needed
     required property int udpPort
+
+    // Fixed TCP command port shown before a camera IP has been discovered.
+    required property int commandTcpPort
+
     required property bool hasReceivedFrame
     required property bool isReceivingFrames
     required property bool isStreamStale
+
+    // True after the backend has prepared a discovered TCP endpoint.
+    required property bool hasTcpEndpoint
+
     required property bool hasReceivedFrameInterval
     required property bool hasCameraFrameInterval
     required property real receivedFramesPerSecond
     required property int receivedFrameIntervalMs
     required property int cameraFrameIntervalMs
 
+    // Backend-formatted "ip:port" text for the discovered command endpoint.
+    required property string tcpEndpointText
+
+    // True when the backend allows a START or STOP command click.
+    required property bool canSendCommand
+
+    // Button text supplied by the backend: START, STOP, or WAIT.
+    required property string commandButtonText
+
+    // Button color supplied by the backend.
+    required property string commandButtonColor
+
+    signal commandButtonClicked()
+
     property string title: "Padawan Thermal Viewer"
     property string udpEndpointText:
         "UDP(port " + root.udpPort + ")"
+    property string tcpStateText:
+        root.hasTcpEndpoint
+            ? "TCP: " + root.tcpEndpointText
+            : "TCP: --:" + root.commandTcpPort
     property string udpStateText:
         root.isReceivingFrames
             ? "receiving"
             : root.isStreamStale
                 ? "stale"
                 : "listening"
+    property color tcpStateColor:
+        root.hasTcpEndpoint
+            ? "#8fd19e"
+            : "#777783"
     property color udpStateColor:
         root.isReceivingFrames
             ? "#8fd19e"
@@ -69,13 +100,31 @@ Rectangle {
             Layout.fillWidth: true
         }
 
-        Text {
-            Layout.maximumWidth: 170
+        ColumnLayout {
+            Layout.maximumWidth: 210
             Layout.minimumWidth: 0
-            text: root.udpEndpointText
-            color: "#d8d8df"
-            font.pixelSize: 17
-            elide: Text.ElideRight
+            spacing: 2
+
+            // Existing thermal frame UDP status.
+            // This port continues to receive image frames independently.
+            Text {
+                Layout.fillWidth: true
+                text: root.udpEndpointText
+                color: "#d8d8df"
+                font.pixelSize: 15
+                elide: Text.ElideRight
+            }
+
+            // Newly discovered TCP command endpoint status.
+            // This only means an endpoint is prepared; no TCP socket is open yet.
+            Text {
+                Layout.fillWidth: true
+                text: root.tcpStateText
+                color: root.tcpStateColor
+                font.pixelSize: 15
+                font.bold: root.hasTcpEndpoint
+                elide: Text.ElideRight
+            }
         }
 
         Text {
@@ -86,6 +135,37 @@ Rectangle {
             font.pixelSize: 17
             font.bold: root.isReceivingFrames || root.isStreamStale
             elide: Text.ElideRight
+        }
+
+        // Single camera command button.
+        // It is disabled while discovery is missing or a command response is pending.
+        Button {
+            Layout.preferredWidth: 86
+            Layout.preferredHeight: 34
+            enabled: root.canSendCommand
+            text: root.commandButtonText
+
+            onClicked: {
+                root.commandButtonClicked()
+            }
+
+            contentItem: Text {
+                text: parent.text
+                color: "white"
+                font.pixelSize: 14
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+            }
+
+            background: Rectangle {
+                radius: 6
+                color: root.commandButtonColor
+                opacity: parent.enabled
+                    ? 1.0
+                    : 0.65
+            }
         }
 
         Text {

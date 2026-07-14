@@ -13,6 +13,8 @@
 #include "analysis/frame_timing_tracker.h"
 #include "detector/hotspot_settings.h"
 #include "image/thermal_image_provider.h"
+#include "network/handshake_receiver.h"
+#include "network/tcp_command_client.h"
 #include "models/frame_model.h"
 #include "network/udp_receiver.h"
 #include "protocol/packet_decoder.h"
@@ -22,7 +24,9 @@
 
 namespace
 {
+constexpr quint16 HandshakeUdpPort = 5004;
 constexpr quint16 ReceiverUdpPort = 5005;
+constexpr quint16 CommandTcpPort = 5006;
 }
 
 int main(int argc, char *argv[])
@@ -119,6 +123,19 @@ int main(int argc, char *argv[])
 
 
     // Backend network object.
+    // It listens for the tiny obfuscated UDP discovery handshake from the ESP32.
+    // A valid discovery packet prepares the TCP command endpoint, but does not
+    // open a TCP socket yet.
+    HandshakeReceiver handshakeReceiver(
+        HandshakeUdpPort,
+        CommandTcpPort
+    );
+
+    // Backend command endpoint shell.
+    // This only stores the discovered <camera-ip>:5006 endpoint in this slice.
+    TcpCommandClient tcpCommandClient;
+
+    // Backend network object.
     // It listens for UDP packets and emits thermalFrameReceived(...) when a valid
     // thermal frame has been decoded.
     //
@@ -191,6 +208,20 @@ int main(int argc, char *argv[])
         ReceiverUdpPort
     );
 
+    // Expose the fixed TCP command port so QML can show the pending endpoint
+    // before discovery has found the camera IP.
+    engine.rootContext()->setContextProperty(
+        "commandTcpPort",
+        CommandTcpPort
+    );
+
+    // Expose the TCP command endpoint shell to QML.
+    // QML reads hasEndpoint and endpointText from this object.
+    engine.rootContext()->setContextProperty(
+        "tcpCommandClient",
+        &tcpCommandClient
+    );
+
     engine.rootContext()->setContextProperty(
         "timeSeriesRecorder",
         &timeSeriesRecorder
@@ -215,6 +246,36 @@ int main(int argc, char *argv[])
         0,
         "FrameModel",
         "FrameModel is created in C++ and exposed as a context property."
+    );
+
+    // Connect the backend data flow.
+    //
+    // Discovery packets prepare the future TCP command endpoint.
+    // TcpCommandClient handles deduplication, so repeated identical broadcasts
+    // do not cause repeated endpointChanged() notifications.
+    QObject::connect(
+        &handshakeReceiver,
+        &HandshakeReceiver::deviceDiscovered,
+        &tcpCommandClient,
+        &TcpCommandClient::setEndpoint
+    );
+
+    QObject::connect(
+        &tcpCommandClient,
+        &TcpCommandClient::endpointChanged,
+        &tcpCommandClient,
+        [
+            &tcpCommandClient
+        ]()
+        {
+            qInfo()
+                << "Padawan camera discovered at"
+                << tcpCommandClient.endpointAddressText();
+
+            qInfo()
+                << "TCP command endpoint prepared:"
+                << tcpCommandClient.endpointText();
+        }
     );
 
     // Connect the backend data flow.
