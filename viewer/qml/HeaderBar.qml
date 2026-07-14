@@ -97,14 +97,57 @@ Rectangle {
         anchors.margins: 16
         spacing: 24
 
-        Text {
-            Layout.maximumWidth: root.width * 0.4
+        RowLayout {
+            Layout.maximumWidth: root.width * 0.46
             Layout.minimumWidth: 0
-            text: root.title
-            color: "white"
-            font.pixelSize: 22
-            font.bold: true
-            elide: Text.ElideRight
+            spacing: 12
+
+            Text {
+                Layout.maximumWidth: root.width * 0.32
+                Layout.minimumWidth: 0
+                text: root.title
+                color: "white"
+                font.pixelSize: 22
+                font.bold: true
+                elide: Text.ElideRight
+            }
+
+            // Single camera command button.
+            // Keep this near the title so the primary action is easy to find.
+            Rectangle {
+                id: commandButton
+
+                Layout.preferredWidth: 86
+                Layout.preferredHeight: 34
+
+                radius: 6
+                color: root.commandButtonColor
+                opacity: root.canSendCommand
+                    ? 1.0
+                    : 0.65
+
+                Text {
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    text: root.commandButtonText
+                    color: "white"
+                    font.pixelSize: 14
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    elide: Text.ElideRight
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    enabled: root.canSendCommand
+                    cursorShape: Qt.PointingHandCursor
+
+                    onClicked: {
+                        root.commandButtonClicked()
+                    }
+                }
+            }
         }
 
         Item {
@@ -112,12 +155,12 @@ Rectangle {
         }
 
         ColumnLayout {
-            Layout.maximumWidth: 210
+            Layout.maximumWidth: 130
             Layout.minimumWidth: 0
             spacing: 2
 
             // Existing thermal frame UDP status.
-            // This port continues to receive image frames independently.
+            // The port and receive state stay together so the status reads as one unit.
             Text {
                 Layout.fillWidth: true
                 text: root.udpEndpointText
@@ -125,6 +168,21 @@ Rectangle {
                 font.pixelSize: 15
                 elide: Text.ElideRight
             }
+
+            Text {
+                Layout.fillWidth: true
+                text: root.udpStateText
+                color: root.udpStateColor
+                font.pixelSize: 15
+                font.bold: root.isReceivingFrames || root.isStreamStale
+                elide: Text.ElideRight
+            }
+        }
+
+        ColumnLayout {
+            Layout.maximumWidth: 190
+            Layout.minimumWidth: 0
+            spacing: 2
 
             // Newly discovered TCP command endpoint status.
             // This only means an endpoint is prepared; no TCP socket is open yet.
@@ -136,22 +194,6 @@ Rectangle {
                 font.bold: root.hasTcpEndpoint
                 elide: Text.ElideRight
             }
-        }
-
-        Text {
-            Layout.maximumWidth: 100
-            Layout.minimumWidth: 0
-            text: root.udpStateText
-            color: root.udpStateColor
-            font.pixelSize: 17
-            font.bold: root.isReceivingFrames || root.isStreamStale
-            elide: Text.ElideRight
-        }
-
-        ColumnLayout {
-            Layout.maximumWidth: 180
-            Layout.minimumWidth: 0
-            spacing: 2
 
             // Display the mode reported by the newest UDP frame.
             // This is the real current quantization mode for visible pixels.
@@ -162,94 +204,56 @@ Rectangle {
                 font.pixelSize: 14
                 elide: Text.ElideRight
             }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 4
-
-                Repeater {
-                    model: root.quantizationOptions
-
-                    Rectangle {
-                        Layout.preferredWidth: 48
-                        Layout.preferredHeight: 22
-                        radius: 4
-
-                        // Highlight the mode from the last received frame.
-                        // Disable clicks while any TCP command is pending.
-                        color: modelData.mode === root.quantizationMode
-                            ? "#2f9e44"
-                            : "#444451"
-                        opacity: root.canSendCommand
-                            ? 1.0
-                            : 0.55
-
-                        Text {
-                            anchors.fill: parent
-                            anchors.margins: 3
-                            text: modelData.label
-                            color: "white"
-                            font.pixelSize: 11
-                            font.bold:
-                                modelData.mode === root.quantizationMode
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled:
-                                root.canSendCommand
-                                && modelData.mode !== root.quantizationMode
-                            cursorShape: Qt.PointingHandCursor
-
-                            onClicked: {
-                                root.quantizationModeRequested(
-                                    modelData.mode
-                                )
-                            }
-                        }
-                    }
-                }
-            }
         }
 
-        // Single camera command button.
-        // This is a plain Rectangle instead of a Qt Quick Controls Button,
-        // because the native macOS style does not allow background/contentItem
-        // customization without switching the whole app to a non-native style.
-        Rectangle {
-            id: commandButton
+        RowLayout {
+            Layout.maximumWidth: 160
+            Layout.minimumWidth: 0
+            spacing: 4
 
-            Layout.preferredWidth: 86
-            Layout.preferredHeight: 34
+            Repeater {
+                model: root.quantizationOptions
 
-            radius: 6
-            color: root.commandButtonColor
-            opacity: root.canSendCommand
-                ? 1.0
-                : 0.65
+                Rectangle {
+                    Layout.preferredWidth: 48
+                    Layout.preferredHeight: 22
+                    radius: 4
 
-            Text {
-                anchors.fill: parent
-                anchors.margins: 6
-                text: root.commandButtonText
-                color: "white"
-                font.pixelSize: 14
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideRight
-            }
+                    // Highlight the mode from the last received frame.
+                    // Disable clicks while any TCP command is pending.
+                    color: modelData.mode === root.quantizationMode
+                        ? "#2f9e44"
+                        : "#444451"
+                    opacity: root.canSendCommand
+                        ? 1.0
+                        : 0.55
 
-            MouseArea {
-                anchors.fill: parent
-                enabled: root.canSendCommand
-                cursorShape: Qt.PointingHandCursor
+                    Text {
+                        anchors.fill: parent
+                        anchors.margins: 3
+                        text: modelData.label
+                        color: "white"
+                        font.pixelSize: 11
+                        font.bold:
+                            modelData.mode === root.quantizationMode
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
 
-                onClicked: {
-                    root.commandButtonClicked()
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled:
+                            root.canSendCommand
+                            && modelData.mode !== root.quantizationMode
+                        cursorShape: Qt.PointingHandCursor
+
+                        onClicked: {
+                            root.quantizationModeRequested(
+                                modelData.mode
+                            )
+                        }
+                    }
                 }
             }
         }

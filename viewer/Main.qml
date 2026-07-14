@@ -180,6 +180,10 @@ Window {
         TemperatureGraph{
         Layout.fillWidth: true
         Layout.preferredHeight: 220
+        quantizationMinimumCelsius:
+            frameModel.quantizationMinimumCelsius
+        quantizationMaximumCelsius:
+            frameModel.quantizationMaximumCelsius
         }
         // TimingPanel {
         //     Layout.fillWidth: true

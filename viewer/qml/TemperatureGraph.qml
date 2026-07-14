@@ -9,6 +9,9 @@ Rectangle {
     color: "#18181f"
     radius: 8
 
+    required property real quantizationMinimumCelsius
+    required property real quantizationMaximumCelsius
+
     property bool autoScaleTemperatureAxis: false
     property real recordedMinimumCelsius: 0
     property real recordedMaximumCelsius: 0
@@ -49,8 +52,8 @@ Rectangle {
             !autoScaleTemperatureAxis
             || !hasRecordedTemperatureRange
         ) {
-            temperatureAxis.min = 10
-            temperatureAxis.max = 45
+            temperatureAxis.min = root.quantizationMinimumCelsius
+            temperatureAxis.max = root.quantizationMaximumCelsius
             return
         }
 
@@ -63,6 +66,9 @@ Rectangle {
         temperatureAxis.min = recordedMinimumCelsius - padding
         temperatureAxis.max = recordedMaximumCelsius + padding
     }
+
+    onQuantizationMinimumCelsiusChanged: updateTemperatureAxis()
+    onQuantizationMaximumCelsiusChanged: updateTemperatureAxis()
 
     ColumnLayout {
         anchors.fill: parent
@@ -166,8 +172,8 @@ Rectangle {
             axisY: ValueAxis {
                 id: temperatureAxis
 
-                min: 10
-                max: 45
+                min: root.quantizationMinimumCelsius
+                max: root.quantizationMaximumCelsius
                 tickInterval: 5
                 labelDecimals: 0
             }
