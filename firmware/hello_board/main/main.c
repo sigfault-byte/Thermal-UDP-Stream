@@ -8,6 +8,7 @@
 #include "wifi/wifi_sta.h"
 #include "network/udp_sender.h"
 #include "network/tcp_command_server.h"
+#include "network/handshake_broadcaster.h"
 #include "camera/camera_i2c.h"
 #include "camera/MLX90640_I2C_Driver.h"
 #include "camera/MLX90640_API.h"
@@ -18,6 +19,8 @@
 #define UDP_TASK_PRIORITY 5
 #define TCP_COMMAND_TASK_STACK_SIZE 4096
 #define TCP_COMMAND_TASK_PRIORITY 5
+#define HANDSHAKE_TASK_STACK_SIZE 4096
+#define HANDSHAKE_TASK_PRIORITY 5
 
 static uint16_t ee_data[MLX90640_EEPROM_WORDS];
 static paramsMLX90640 mlx_params;
@@ -113,6 +116,21 @@ void app_main(void)
     printf("Wi-Fi init\n");
     wifi_init_sta();
     wifi_wait_connected();
+
+    printf("Starting handshake broadcaster\n");
+
+    /*
+     * Start periodic UDP broadcasts after Wi-Fi has an IP address.
+     * Receivers use these packets for discovery, then connect over TCP 5006.
+     */
+    xTaskCreate(
+        handshake_broadcaster_task,  // FreeRTOS task function
+        "handshake",                // Task name shown in diagnostics
+        HANDSHAKE_TASK_STACK_SIZE,  // Stack reserved for UDP broadcast work
+        NULL,                       // No startup parameter is needed yet
+        HANDSHAKE_TASK_PRIORITY,    // Same priority class as network tasks
+        NULL                        // No task handle is needed by app_main
+    );
 
     printf("Starting TCP command server\n");
 
