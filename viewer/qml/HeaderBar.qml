@@ -47,6 +47,10 @@ Rectangle {
     // The packet timing fields remain the measured runtime truth.
     required property int refreshRateHz
 
+    // Compact Qt/application log model exposed from C++.
+    // The model is already filtered so frame-rate spam does not fill the header.
+    required property var logModel
+
     signal commandButtonClicked()
     signal quantizationModeRequested(int mode)
     signal refreshRateRequested(int hz)
@@ -104,8 +108,8 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.margins: 16
-        spacing: 16
+        anchors.margins: 12
+        spacing: 10
 
         // Primary stream command comes first in the instrument strip.
         Rectangle {
@@ -263,10 +267,11 @@ Rectangle {
         }
 
         ColumnLayout{
-            Layout.fillWidth: true
+            Layout.preferredWidth: 190
+            Layout.minimumWidth: 120
 
             Text {
-                Layout.maximumWidth: 130
+                Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 text: root.udpStatusText
                 color: root.udpStateColor
@@ -276,7 +281,7 @@ Rectangle {
             }
 
             Text {
-                Layout.maximumWidth: 220
+                Layout.fillWidth: true
                 Layout.minimumWidth: 0
                 text: root.tcpStateText
                 color: root.tcpStateColor
@@ -286,35 +291,92 @@ Rectangle {
             }
         }
 
+        Rectangle {
+            id: headerLogPanel
+
+            Layout.preferredWidth: 440
+            Layout.minimumWidth: 180
+            Layout.preferredHeight: 40
+
+            radius: 5
+            color: "#101014"
+            border.color: "#2b2b35"
+            border.width: 1
+            clip: true
+
+            ListView {
+                id: headerLogView
+
+                anchors.fill: parent
+                anchors.margins: 4
+
+                // The list is read-only: it accepts wheel/drag scrolling but no input.
+                model: root.logModel
+                clip: true
+                interactive: true
+                boundsBehavior: Flickable.StopAtBounds
+                spacing: 1
+
+                delegate: Text {
+                    width: headerLogView.width
+                    height: 15
+                    text:
+                        timestampText + " " + message
+                    color: entryColor
+                    font.pixelSize: 10
+                    elide: Text.ElideRight
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+            Connections {
+                target: root.logModel
+
+                function onCountChanged() {
+                    // Keep the tiny display on the newest useful event.
+                    // It remains scrollable with the mouse wheel for recent history.
+                    headerLogView.positionViewAtEnd()
+                }
+            }
+        }
+
         Item {
+            // Flexible air gap: UDP/TCP and the log stay grouped on the left,
+            // while the changing packet statistics stay pinned on the far right.
             Layout.fillWidth: true
         }
 
         Text {
-            Layout.maximumWidth: 110
-            Layout.minimumWidth: 0
+            Layout.preferredWidth: 92
+            Layout.minimumWidth: 92
+            Layout.maximumWidth: 92
             text: "FPS: " + root.fpsText
             color: "#d8d8df"
             font.pixelSize: 17
             elide: Text.ElideRight
+            horizontalAlignment: Text.AlignRight
         }
 
         Text {
-            Layout.maximumWidth: 130
-            Layout.minimumWidth: 0
+            Layout.preferredWidth: 118
+            Layout.minimumWidth: 118
+            Layout.maximumWidth: 118
             text: "recv Δ: " + root.receivedIntervalText
             color: "#d8d8df"
             font.pixelSize: 17
             elide: Text.ElideRight
+            horizontalAlignment: Text.AlignRight
         }
 
         Text {
-            Layout.maximumWidth: 130
-            Layout.minimumWidth: 0
+            Layout.preferredWidth: 112
+            Layout.minimumWidth: 112
+            Layout.maximumWidth: 112
             text: "cam Δ: " + root.cameraIntervalText
             color: "#d8d8df"
             font.pixelSize: 17
             elide: Text.ElideRight
+            horizontalAlignment: Text.AlignRight
         }
     }
 }

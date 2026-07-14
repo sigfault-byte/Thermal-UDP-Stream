@@ -23,6 +23,10 @@ Window {
     // This avoids an ambiguous HeaderBar binding with the same property name.
     property int padawanCommandTcpPort: commandTcpPort
 
+    // Copy the C++ log model into a window property.
+    // This avoids an ambiguous HeaderBar binding with the same property name.
+    property var padawanLogModel: logModel
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
@@ -66,6 +70,9 @@ Window {
 
             // Display the refresh rate most recently acknowledged by the ESP32.
             refreshRateHz: tcpCommandClient.refreshRateHz
+
+            // Display filtered Qt/application logs in the compact header screen.
+            logModel: mainWindow.padawanLogModel
 
             onCommandButtonClicked: {
                 // Toggle based on the last acknowledged ESP32 running state.

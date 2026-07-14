@@ -2,17 +2,21 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QFile>
+#include <QMetaObject>
+#include <QPointer>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QTimer>
 #include <QtQml>
 
 #include <QDebug>
+#include <cstdio>
 
 #include "analysis/frame_statistics_calculator.h"
 #include "analysis/frame_timing_tracker.h"
 #include "detector/hotspot_settings.h"
 #include "image/thermal_image_provider.h"
+#include "models/log_model.h"
 #include "network/handshake_receiver.h"
 #include "network/tcp_command_client.h"
 #include "models/frame_model.h"
@@ -27,6 +31,122 @@ namespace
 constexpr quint16 HandshakeUdpPort = 5004;
 constexpr quint16 ReceiverUdpPort = 5005;
 constexpr quint16 CommandTcpPort = 5006;
+
+QPointer<LogModel> HeaderLogModel;
+QtMessageHandler PreviousMessageHandler = nullptr;
+
+QString levelNameForMessageType(
+    QtMsgType type
+)
+{
+    switch (type)
+    {
+        case QtDebugMsg:
+            return "debug";
+
+        case QtInfoMsg:
+            return "info";
+
+        case QtWarningMsg:
+            return "warning";
+
+        case QtCriticalMsg:
+            return "critical";
+
+        case QtFatalMsg:
+            return "fatal";
+    }
+
+    return "info";
+}
+
+bool shouldShowInHeaderLog(
+    QtMsgType type,
+    const QString &message
+)
+{
+    if (message.startsWith("Decoded thermal frame"))
+    {
+        return false;
+    }
+
+    if (type == QtWarningMsg || type == QtCriticalMsg || type == QtFatalMsg)
+    {
+        return true;
+    }
+
+    if (type != QtInfoMsg)
+    {
+        return false;
+    }
+
+    return message.contains("TCP command", Qt::CaseInsensitive)
+        || message.contains("command endpoint", Qt::CaseInsensitive)
+        || message.contains("Padawan camera discovered", Qt::CaseInsensitive)
+        || message.contains("accepted", Qt::CaseInsensitive)
+        || message.contains("acknowledged", Qt::CaseInsensitive)
+        || message.contains("Listening for Padawan discovery", Qt::CaseInsensitive)
+        || message.contains("Listening for UDP datagrams", Qt::CaseInsensitive);
+}
+
+void writeMessageToTerminal(
+    QtMsgType type,
+    const QMessageLogContext &context,
+    const QString &message
+)
+{
+    if (PreviousMessageHandler != nullptr)
+    {
+        PreviousMessageHandler(
+            type,
+            context,
+            message
+        );
+
+        return;
+    }
+
+    std::fprintf(
+        stderr,
+        "%s: %s\n",
+        qPrintable(levelNameForMessageType(type)),
+        qPrintable(message)
+    );
+}
+
+void headerLogMessageHandler(
+    QtMsgType type,
+    const QMessageLogContext &context,
+    const QString &message
+)
+{
+    writeMessageToTerminal(
+        type,
+        context,
+        message
+    );
+
+    if (
+        HeaderLogModel.isNull()
+        || !shouldShowInHeaderLog(
+            type,
+            message
+        )
+    )
+    {
+        return;
+    }
+
+    // Qt messages can technically come from any thread.
+    // Queue the append onto the model's owning thread before touching it.
+    QMetaObject::invokeMethod(
+        HeaderLogModel.data(),
+        "append",
+        Qt::QueuedConnection,
+        Q_ARG(QString, levelNameForMessageType(type)),
+        Q_ARG(QString, message)
+    );
+}
 }
 
 int main(int argc, char *argv[])
@@ -112,6 +232,7 @@ int main(int argc, char *argv[])
     // Backend state object exposed to QML.
     // QML reads properties from this object and reacts to its NOTIFY signals.
     FrameModel frameModel;
+    LogModel logModel;
     FrameTimingTracker frameTimingTracker;
     QTimer frameTimingRefreshTimer;
     QTimer rawReplayTimer;
@@ -121,6 +242,13 @@ int main(int argc, char *argv[])
     TimeSeriesRecorder timeSeriesRecorder;
     timeSeriesRecorder.start();
 
+    HeaderLogModel =
+        &logModel;
+
+    PreviousMessageHandler =
+        qInstallMessageHandler(
+            headerLogMessageHandler
+        );
 
     // Backend network object.
     // It listens for the tiny obfuscated UDP discovery handshake from the ESP32.
@@ -201,6 +329,13 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(
         "frameModel",
         &frameModel
+    );
+
+    // Expose the compact header log model to QML.
+    // The Qt message handler appends useful messages to this model.
+    engine.rootContext()->setContextProperty(
+        "logModel",
+        &logModel
     );
 
     engine.rootContext()->setContextProperty(
@@ -464,5 +599,16 @@ int main(int argc, char *argv[])
 
     // Start the Qt event loop.
     // From here on, signals, sockets, QML bindings, rendering, etc. happen.
-    return padawan.exec();
+    const int exitCode =
+        padawan.exec();
+
+    // Restore the previous Qt message handler before stack-owned objects vanish.
+    // This keeps late teardown logs from trying to append into a destroyed model.
+    qInstallMessageHandler(
+        PreviousMessageHandler
+    );
+
+    HeaderLogModel.clear();
+
+    return exitCode;
 }

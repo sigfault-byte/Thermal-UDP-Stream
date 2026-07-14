@@ -14,6 +14,8 @@ qt_add_executable(padawan_viewer
 
     models/frame_model.cpp
     models/frame_model.h
+    models/log_model.cpp
+    models/log_model.h
 
     network/udp_receiver.cpp
     network/udp_receiver.h
