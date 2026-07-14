@@ -10,10 +10,13 @@ struct HotspotSettings
     double temperatureToleranceCelsius = 1;
     // encoded temprature
     //
-    int temperatureToleranceEncoded() const
+    int temperatureToleranceEncoded(
+        quint8 quantizationMode
+    ) const
     {
         return ThermalQuantization::encodeTemperatureDifference(
-            temperatureToleranceCelsius
+            temperatureToleranceCelsius,
+            quantizationMode
         );
     }
 

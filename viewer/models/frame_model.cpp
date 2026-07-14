@@ -1,4 +1,5 @@
 #include "frame_model.h"
+#include "protocol/thermal_quantization.h"
 
 #include <algorithm>
 
@@ -98,6 +99,53 @@ void FrameModel::setTimestampMs(
     m_timestampMs = timestampMs;
 
     emit timestampMsChanged();
+}
+
+int FrameModel::quantizationMode() const
+{
+    return m_quantizationMode;
+}
+
+QString FrameModel::quantizationRangeText() const
+{
+    return ThermalQuantization::rangeText(
+        m_quantizationMode
+    );
+}
+
+double FrameModel::quantizationMinimumCelsius() const
+{
+    return ThermalQuantization::rangeForMode(
+        m_quantizationMode
+    ).minimumTemperatureC;
+}
+
+double FrameModel::quantizationMaximumCelsius() const
+{
+    return ThermalQuantization::rangeForMode(
+        m_quantizationMode
+    ).maximumTemperatureC;
+}
+
+void FrameModel::setQuantizationMode(
+    quint8 quantizationMode
+)
+{
+    // The decoder already rejects invalid modes.
+    // Keep this guard here because FrameModel is the QML-visible source of truth.
+    if (!ThermalQuantization::isValidMode(quantizationMode))
+    {
+        return;
+    }
+
+    if (m_quantizationMode == quantizationMode)
+    {
+        return;
+    }
+
+    m_quantizationMode = quantizationMode;
+
+    emit quantizationModeChanged();
 }
 
 void FrameModel::setStatistics(

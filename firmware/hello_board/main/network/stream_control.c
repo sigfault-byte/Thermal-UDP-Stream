@@ -4,6 +4,7 @@
 #include "freertos/event_groups.h"
 #include "freertos/semphr.h"
 #include "esp_log.h"
+#include "utils/quantization.h"
 
 #define STREAM_CONTROL_STARTED_BIT BIT0
 
@@ -16,9 +17,11 @@ static const char *TAG = "stream_control";
  *
  *   - TCP command task:
  *       writes is_running and destination_addr when START/STOP arrives.
+ *       writes quantization_mode when SET_QUANTIZATION arrives.
  *
  *   - UDP sender task:
  *       reads is_running and destination_addr before sending frames.
+ *       reads quantization_mode before encoding pixels.
  *
  * Without a mutex, one task could read these variables while the other task is
  * halfway through changing them. That is the multithreading problem here.
@@ -55,9 +58,14 @@ static EventGroupHandle_t state_events;
  * destination_addr:
  *   The viewer IP copied from the TCP peer that sent START.
  *   It uses the same byte order as sockaddr_in.sin_addr.s_addr.
+ *
+ * quantization_mode:
+ *   The range used to compress temperatures into one byte.
+ *   Default is mode 1, the original 10-45 C range.
  */
 static bool is_running;
 static uint32_t destination_addr;
+static uint8_t quantization_mode;
 
 void stream_control_init(void)
 {
@@ -79,6 +87,7 @@ void stream_control_init(void)
      */
     is_running = false;
     destination_addr = 0;
+    quantization_mode = QUANTIZATION_MODE_10_45;
 
     /*
      * Make sure the START bit is clear, so stream_control_wait_started()
@@ -214,4 +223,35 @@ bool stream_control_get_destination(uint32_t *destination_addr_s_addr)
     xSemaphoreGive(state_mutex);
 
     return running;
+}
+
+void stream_control_set_quantization_mode(uint8_t mode)
+{
+    /*
+     * The caller validates the mode before this function is called.
+     * This module only stores the selected shared value.
+     */
+    xSemaphoreTake(state_mutex, portMAX_DELAY);
+
+    quantization_mode = mode;
+
+    xSemaphoreGive(state_mutex);
+
+    ESP_LOGI(TAG, "Quantization mode set to %u", mode);
+}
+
+uint8_t stream_control_get_quantization_mode(void)
+{
+    uint8_t mode;
+
+    /*
+     * Return a snapshot of the current mode.
+     * If TCP changes the mode right after this function returns, the next frame
+     * will see the new mode.
+     */
+    xSemaphoreTake(state_mutex, portMAX_DELAY);
+    mode = quantization_mode;
+    xSemaphoreGive(state_mutex);
+
+    return mode;
 }

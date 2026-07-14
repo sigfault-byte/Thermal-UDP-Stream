@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     commandLineParser.addHelpOption();
 
     // Save mode copies every UDP payload into a raw .bin file.
-    // The file has no header: it is only 786-byte packets back-to-back.
+    // The file has no header: it is only 787-byte V2 packets back-to-back.
     const QCommandLineOption saveBinOption(
         QStringList() << "save-bin",
         "Save raw UDP payloads to <path>.",
@@ -303,12 +303,17 @@ int main(int argc, char *argv[])
                 );
 
             const Hotspot hotspot =
-                HotspotDetector::detect(frame.pixels, frameModel.hotspotSettings());
+                HotspotDetector::detect(
+                    frame.pixels,
+                    frameModel.hotspotSettings(),
+                    frame.quantizationMode
+                );
 
             // Compute min/max/other statistics from the raw pixel bytes.
             const FrameStatistics statistics =
                 FrameStatisticsCalculator::calculate(
-                    frame.pixels
+                    frame.pixels,
+                    frame.quantizationMode
                 );
 
             timeSeriesRecorder.append(
@@ -320,6 +325,10 @@ int main(int argc, char *argv[])
             // Update QML-visible metadata.
             frameModel.setTimestampMs(
                 frame.timestampMs
+            );
+
+            frameModel.setQuantizationMode(
+                frame.quantizationMode
             );
 
             frameModel.setHotspot(hotspot);

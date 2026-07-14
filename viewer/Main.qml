@@ -58,6 +58,12 @@ Window {
             // Let the backend provide active or pending button color.
             commandButtonColor: tcpCommandClient.commandButtonColor
 
+            // Display the quantization mode from the latest UDP frame.
+            quantizationMode: frameModel.quantizationMode
+
+            // Display the human range for the latest UDP frame mode.
+            quantizationRangeText: frameModel.quantizationRangeText
+
             onCommandButtonClicked: {
                 // Toggle based on the last acknowledged ESP32 running state.
                 if (tcpCommandClient.cameraRunning) {
@@ -65,6 +71,10 @@ Window {
                 } else {
                     tcpCommandClient.sendStartCommand()
                 }
+            }
+
+            onQuantizationModeRequested: mode => {
+                tcpCommandClient.sendSetQuantizationCommand(mode)
             }
 
             hasReceivedFrameInterval:
@@ -127,6 +137,10 @@ Window {
                 minimumCelsius: frameModel.minimumCelsius
                 maximumCelsius: frameModel.maximumCelsius
                 meanCelsius: frameModel.meanCelsius
+                quantizationMinimumCelsius:
+                    frameModel.quantizationMinimumCelsius
+                quantizationMaximumCelsius:
+                    frameModel.quantizationMaximumCelsius
 
                 inRangePixelCount: frameModel.inRangePixelCount
                 belowRangePixelCount: frameModel.belowRangePixelCount

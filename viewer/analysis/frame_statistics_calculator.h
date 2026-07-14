@@ -12,7 +12,8 @@ public:
     //
     // Protocol values 0 and 255 are reserved and therefore ignored.
     static FrameStatistics calculate(
-        const QByteArray &pixels
+        const QByteArray &pixels,
+        quint8 quantizationMode
     );
 };
 

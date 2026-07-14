@@ -9,6 +9,7 @@
  * Why this file exists:
  *
  *   - The TCP command task receives START/STOP packets from the Qt viewer.
+ *   - The TCP command task also receives SET_QUANTIZATION packets.
  *   - The UDP sender task reads camera frames and sends them to the viewer.
  *
  * Those are two different FreeRTOS tasks, so they can run at different moments.
@@ -60,3 +61,17 @@ bool stream_control_is_running(void);
  * Returns false when streaming is not currently enabled.
  */
 bool stream_control_get_destination(uint32_t *destination_addr_s_addr);
+
+/*
+ * Store the quantization mode used by future thermal frames.
+ *
+ * Called by the TCP command task when SET_QUANTIZATION is valid.
+ */
+void stream_control_set_quantization_mode(uint8_t mode);
+
+/*
+ * Return a snapshot of the current quantization mode.
+ *
+ * Called by the UDP sender before quantizing each frame.
+ */
+uint8_t stream_control_get_quantization_mode(void);

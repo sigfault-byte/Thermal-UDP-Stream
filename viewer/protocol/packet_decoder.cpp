@@ -1,6 +1,6 @@
 #include "packet_decoder.h"
 #include "detector/hotspot_detector.h"
-// #include "thermal_quantization.h"
+#include "thermal_quantization.h"
 
 #include <QtEndian>
 // #include <QDebug>
@@ -12,14 +12,13 @@
 namespace
 {
     constexpr qsizetype MagicSize = 8;
-    constexpr qsizetype HeaderSize = 18;
+    constexpr qsizetype HeaderSize = 19;
     constexpr qsizetype PixelCount = 32 * 24;
 
-    constexpr quint8 SupportedVersion = 1;
+    constexpr quint8 SupportedVersion = 2;
     constexpr quint8 ThermalFrameType = 1;
 
-    // const QByteArray ExpectedMagic("PADAWAN\0", MagicSize);
-    const QByteArray ExpectedMagic("PADAWAN", MagicSize);
+    const QByteArray ExpectedMagic("PADAWAN\0", MagicSize);
 }
 
 bool PacketDecoder::decodeThermalFrame(
@@ -80,6 +79,18 @@ bool PacketDecoder::decodeThermalFrame(
 
     frame.timestampMs =
         qFromLittleEndian<quint32>(bytes + 14);
+
+    frame.quantizationMode =
+        bytes[18];
+
+    if (!ThermalQuantization::isValidMode(frame.quantizationMode))
+    {
+        errorMessage = QString(
+            "Unsupported quantization mode: %1"
+        ).arg(frame.quantizationMode);
+
+        return false;
+    }
 
     frame.pixels =
         datagram.mid(HeaderSize, PixelCount);

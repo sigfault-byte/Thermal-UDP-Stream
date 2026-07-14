@@ -9,7 +9,8 @@ namespace
 }
 
 FrameStatistics FrameStatisticsCalculator::calculate(
-    const QByteArray &pixels
+    const QByteArray &pixels,
+    quint8 quantizationMode
 )
     {
         FrameStatistics statistics;
@@ -59,17 +60,26 @@ FrameStatistics FrameStatisticsCalculator::calculate(
         statistics.maximumEncoded = maximum;
 
         statistics.minimumCelsius =
-            ThermalQuantization::decodeTemperature(minimum);
+            ThermalQuantization::decodeTemperature(
+                minimum,
+                quantizationMode
+            );
 
         statistics.maximumCelsius =
-            ThermalQuantization::decodeTemperature(maximum);
+            ThermalQuantization::decodeTemperature(
+                maximum,
+                quantizationMode
+            );
 
         const double meanEncoded =
             static_cast<double>(sum)
             / statistics.inRangePixelCount;
 
         statistics.meanCelsius =
-            ThermalQuantization::decodeTemperature(meanEncoded);
+            ThermalQuantization::decodeTemperature(
+                meanEncoded,
+                quantizationMode
+            );
 
         return statistics;
     }

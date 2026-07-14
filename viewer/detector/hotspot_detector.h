@@ -11,7 +11,8 @@ class HotspotDetector
 public:
     static Hotspot detect(
         const QByteArray &pixels,
-        const HotspotSettings &settings
+        const HotspotSettings &settings,
+        quint8 quantizationMode
     );
 };
 

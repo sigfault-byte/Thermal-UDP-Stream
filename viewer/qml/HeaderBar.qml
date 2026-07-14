@@ -37,7 +37,14 @@ Rectangle {
     // Button color supplied by the backend.
     required property string commandButtonColor
 
+    // Latest quantization mode reported by the UDP thermal frame.
+    required property int quantizationMode
+
+    // Human-readable range for the latest UDP thermal frame mode.
+    required property string quantizationRangeText
+
     signal commandButtonClicked()
+    signal quantizationModeRequested(int mode)
 
     property string title: "Padawan Thermal Viewer"
     property string udpEndpointText:
@@ -74,6 +81,11 @@ Rectangle {
         root.isReceivingFrames && root.hasCameraFrameInterval
             ? root.cameraFrameIntervalMs + " ms"
             : "---"
+    property var quantizationOptions: [
+        { "mode": 1, "label": "10-45" },
+        { "mode": 2, "label": "20-60" },
+        { "mode": 3, "label": "0-100" }
+    ]
 
     color: "#1b1b22"
     radius: 8
@@ -134,6 +146,73 @@ Rectangle {
             font.pixelSize: 17
             font.bold: root.isReceivingFrames || root.isStreamStale
             elide: Text.ElideRight
+        }
+
+        ColumnLayout {
+            Layout.maximumWidth: 180
+            Layout.minimumWidth: 0
+            spacing: 2
+
+            // Display the mode reported by the newest UDP frame.
+            // This is the real current quantization mode for visible pixels.
+            Text {
+                Layout.fillWidth: true
+                text: "Q: " + root.quantizationRangeText
+                color: "#d8d8df"
+                font.pixelSize: 14
+                elide: Text.ElideRight
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                Repeater {
+                    model: root.quantizationOptions
+
+                    Rectangle {
+                        Layout.preferredWidth: 48
+                        Layout.preferredHeight: 22
+                        radius: 4
+
+                        // Highlight the mode from the last received frame.
+                        // Disable clicks while any TCP command is pending.
+                        color: modelData.mode === root.quantizationMode
+                            ? "#2f9e44"
+                            : "#444451"
+                        opacity: root.canSendCommand
+                            ? 1.0
+                            : 0.55
+
+                        Text {
+                            anchors.fill: parent
+                            anchors.margins: 3
+                            text: modelData.label
+                            color: "white"
+                            font.pixelSize: 11
+                            font.bold:
+                                modelData.mode === root.quantizationMode
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled:
+                                root.canSendCommand
+                                && modelData.mode !== root.quantizationMode
+                            cursorShape: Qt.PointingHandCursor
+
+                            onClicked: {
+                                root.quantizationModeRequested(
+                                    modelData.mode
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Single camera command button.

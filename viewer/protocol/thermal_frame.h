@@ -13,6 +13,7 @@ struct ThermalFrame
     // QT internal 4 byte int
     quint32 frameId = 0;
     quint32 timestampMs = 0;
+    quint8 quantizationMode = 1;
     QByteArray pixels;
 };
 

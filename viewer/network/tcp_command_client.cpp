@@ -1,5 +1,6 @@
 #include "tcp_command_client.h"
 #include "protocol/command_packet.h"
+#include "protocol/thermal_quantization.h"
 
 #include <QAbstractSocket>
 #include <QDebug>
@@ -93,6 +94,7 @@ void TcpCommandClient::setEndpoint(
     {
         m_commandPending = false;
         m_pendingCommand = 0;
+        m_pendingCommandValue = 0;
         m_commandTimeoutTimer.stop();
     }
 
@@ -184,14 +186,48 @@ QString TcpCommandClient::commandButtonColor() const
 void TcpCommandClient::sendStartCommand()
 {
     sendCommand(
-        CommandPacket::StartCommand
+        CommandPacket::StartCommand,
+        0
     );
 }
 
 void TcpCommandClient::sendStopCommand()
 {
     sendCommand(
-        CommandPacket::StopCommand
+        CommandPacket::StopCommand,
+        0
+    );
+}
+
+void TcpCommandClient::sendSetQuantizationCommand(
+    int mode
+)
+{
+    if (mode < 0 || mode > 255)
+    {
+        qWarning()
+            << "Cannot send unsupported quantization mode"
+            << mode;
+
+        return;
+    }
+
+    if (
+        !ThermalQuantization::isValidMode(
+            static_cast<quint8>(mode)
+        )
+    )
+    {
+        qWarning()
+            << "Cannot send unsupported quantization mode"
+            << mode;
+
+        return;
+    }
+
+    sendCommand(
+        CommandPacket::SetQuantizationCommand,
+        static_cast<quint8>(mode)
     );
 }
 
@@ -299,7 +335,8 @@ void TcpCommandClient::handleCommandTimeout()
 }
 
 void TcpCommandClient::sendCommand(
-    quint8 command
+    quint8 command,
+    quint8 value
 )
 {
     if (!m_hasEndpoint)
@@ -330,6 +367,7 @@ void TcpCommandClient::sendCommand(
     // Mark the UI pending before connecting or writing.
     // The button stays grey until the ESP32 confirms the command result.
     m_pendingCommand = command;
+    m_pendingCommandValue = value;
     m_commandPending = true;
     m_receiveBuffer.clear();
     m_commandTimeoutTimer.start();
@@ -364,12 +402,12 @@ void TcpCommandClient::writePendingCommand()
         return;
     }
 
-    // START and STOP do not need a command parameter yet.
-    // Their request value byte is therefore always 0.
+    // START and STOP use value 0.
+    // SET_QUANTIZATION uses value 1, 2, or 3.
     const QByteArray request =
         CommandPacket::buildRequest(
             m_pendingCommand,
-            0
+            m_pendingCommandValue
         );
 
     const qint64 written =
@@ -393,6 +431,8 @@ void TcpCommandClient::writePendingCommand()
     qInfo()
         << "Sent TCP command"
         << CommandPacket::commandName(m_pendingCommand)
+        << "value"
+        << m_pendingCommandValue
         << "to"
         << endpointText();
 }
@@ -408,12 +448,20 @@ void TcpCommandClient::completePendingCommandOk()
     {
         m_cameraRunning = false;
     }
+    else if (m_pendingCommand == CommandPacket::SetQuantizationCommand)
+    {
+        qInfo()
+            << "ESP32 accepted quantization mode"
+            << m_pendingCommandValue
+            << "- waiting for matching UDP frame mode";
+    }
 
     qInfo()
         << "TCP command acknowledged:"
         << CommandPacket::commandName(m_pendingCommand);
 
     m_pendingCommand = 0;
+    m_pendingCommandValue = 0;
     m_commandPending = false;
     m_commandTimeoutTimer.stop();
 
@@ -430,6 +478,7 @@ void TcpCommandClient::completePendingCommandFailure(
 
     // Leave m_cameraRunning unchanged because the ESP32 did not confirm success.
     m_pendingCommand = 0;
+    m_pendingCommandValue = 0;
     m_commandPending = false;
     m_commandTimeoutTimer.stop();
     m_receiveBuffer.clear();

@@ -156,7 +156,8 @@ bool CommandPacket::isSupportedCommand(
 )
 {
     return command == StartCommand
-        || command == StopCommand;
+        || command == StopCommand
+        || command == SetQuantizationCommand;
 }
 
 bool CommandPacket::isSupportedStatus(
@@ -180,6 +181,11 @@ QString CommandPacket::commandName(
     if (command == StopCommand)
     {
         return "STOP";
+    }
+
+    if (command == SetQuantizationCommand)
+    {
+        return "SET_QUANTIZATION";
     }
 
     return QString("UNKNOWN(%1)")

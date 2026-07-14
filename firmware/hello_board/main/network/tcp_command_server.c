@@ -15,6 +15,7 @@
 #include "esp_log.h"
 #include "network/stream_control.h"
 #include "protocol/command_packet.h"
+#include "utils/quantization.h"
 
 /*
  * This is the command TCP port.
@@ -174,6 +175,18 @@ static bool process_command_packet(
          */
         if (packet.command == COMMAND_STOP) {
             stream_control_stop();
+        }
+
+        /*
+         * SET_QUANTIZATION changes how future frames compress temperatures.
+         * The value byte carries the selected mode.
+         */
+        if (packet.command == COMMAND_SET_QUANTIZATION) {
+            if (quantization_mode_is_valid(packet.value)) {
+                stream_control_set_quantization_mode(packet.value);
+            } else {
+                status = COMMAND_STATUS_INVALID_VALUE;
+            }
         }
 
         ESP_LOGI(

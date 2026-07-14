@@ -19,7 +19,7 @@ public:
     // A raw .bin file is just these UDP payloads glued together.
     // There is no extra file header, so replay reads exactly this many bytes.
     static constexpr qsizetype RawThermalPacketSize =
-        18 + (32 * 24);
+        19 + (32 * 24);
 
     // decode one complete UDP datagram into a ThermalFrame.
     // returns true when decoding succeeds.

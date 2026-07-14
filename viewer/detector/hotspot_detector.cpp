@@ -35,13 +35,19 @@ constexpr double ColdPixelPenalty = 1.0;
 }
 */
 
-Hotspot HotspotDetector::detect(const QByteArray &pixels, const HotspotSettings &settings)
+Hotspot HotspotDetector::detect(
+    const QByteArray &pixels,
+    const HotspotSettings &settings,
+    quint8 quantizationMode
+)
 {
     Hotspot hotspot;
     quint8 hottestEncoded = 0;
 
     const int temperatureToleranceEncoded =
-        settings.temperatureToleranceEncoded();
+        settings.temperatureToleranceEncoded(
+            quantizationMode
+        );
 
      // First pass: locate the hottest pixel
      // Parse a flat row major array representing a 32 × 24 frame.
@@ -101,14 +107,20 @@ Hotspot HotspotDetector::detect(const QByteArray &pixels, const HotspotSettings 
             {
                 /*
                  * The exact temperature is unknown.
-                 * This stores the known lower boundary.
+                 * This stores the known upper boundary for the current mode.
                  */
-                hotspot.peakTemperatureCelsius = 45.0;
+                hotspot.peakTemperatureCelsius =
+                    ThermalQuantization::rangeForMode(
+                        quantizationMode
+                    ).maximumTemperatureC;
             }
             else
             {
                 hotspot.peakTemperatureCelsius =
-                    ThermalQuantization::decodeTemperature(value);
+                    ThermalQuantization::decodeTemperature(
+                        value,
+                        quantizationMode
+                    );
             }
         }
     }
@@ -405,7 +417,10 @@ Hotspot HotspotDetector::detect(const QByteArray &pixels, const HotspotSettings 
             }
 
             temperatureSumCelsius +=
-                ThermalQuantization::decodeTemperature(value);
+                ThermalQuantization::decodeTemperature(
+                    value,
+                    quantizationMode
+                );
             ++temperatureSampleCount;
         }
     }

@@ -2,6 +2,7 @@
 #define FRAME_MODEL_H
 
 #include <QObject>
+#include <QString>
 
 #include "analysis/frame_statistics.h"
 #include "analysis/frame_timing_statistics.h"
@@ -72,6 +73,30 @@ class FrameModel : public QObject
         quint32 timestampMs
         READ timestampMs
         NOTIFY timestampMsChanged
+    )
+
+    Q_PROPERTY(
+        int quantizationMode
+        READ quantizationMode
+        NOTIFY quantizationModeChanged
+    )
+
+    Q_PROPERTY(
+        QString quantizationRangeText
+        READ quantizationRangeText
+        NOTIFY quantizationModeChanged
+    )
+
+    Q_PROPERTY(
+        double quantizationMinimumCelsius
+        READ quantizationMinimumCelsius
+        NOTIFY quantizationModeChanged
+    )
+
+    Q_PROPERTY(
+        double quantizationMaximumCelsius
+        READ quantizationMaximumCelsius
+        NOTIFY quantizationModeChanged
     )
 
     Q_PROPERTY(
@@ -275,6 +300,12 @@ public:
     quint32 timestampMs() const;
     void setTimestampMs(quint32 timestampMs);
 
+    int quantizationMode() const;
+    QString quantizationRangeText() const;
+    double quantizationMinimumCelsius() const;
+    double quantizationMaximumCelsius() const;
+    void setQuantizationMode(quint8 quantizationMode);
+
     // Replace all frame statistics and notify QML.
     void setStatistics(const FrameStatistics &statistics);
 
@@ -335,6 +366,7 @@ signals:
 
     void statisticsChanged();
     void timestampMsChanged();
+    void quantizationModeChanged();
     void receiverStatisticsChanged();
     void frameTimingChanged();
 
@@ -351,6 +383,7 @@ private:
     ReceiverStatistics m_receiverStatistics;
     FrameTimingStatistics m_frameTimingStatistics;
     quint32 m_timestampMs = 0;
+    quint8 m_quantizationMode = 1;
 
     Hotspot m_hotspot;
     HotspotSettings m_hotspotSettings;

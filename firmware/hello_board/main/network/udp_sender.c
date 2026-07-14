@@ -126,12 +126,25 @@ void udp_sender_task(void *pvParameters)
                 break;
             }
 
-            temps_to_pixels(temperatures, pixels);
+            /*
+             * Read the current quantization mode after the complete float frame
+             * is ready. A mode command received during this frame will apply
+             * here or on the next frame, depending on exact timing.
+             */
+            uint8_t quantization_mode =
+                stream_control_get_quantization_mode();
+
+            temps_to_pixels(
+                temperatures,
+                quantization_mode,
+                pixels
+            );
 
             thermal_packet_init(
                 &packet,
                 counter,
                 (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS),
+                quantization_mode,
                 pixels
             );
 

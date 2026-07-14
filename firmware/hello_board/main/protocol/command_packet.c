@@ -26,7 +26,8 @@ static bool command_packet_has_magic(
 bool command_packet_is_supported_command(uint8_t command)
 {
     return command == COMMAND_START
-        || command == COMMAND_STOP;
+        || command == COMMAND_STOP
+        || command == COMMAND_SET_QUANTIZATION;
 }
 
 bool command_packet_is_valid_request(const command_packet_t *packet)

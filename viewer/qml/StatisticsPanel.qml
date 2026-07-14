@@ -11,6 +11,8 @@ Rectangle {
     required property real minimumCelsius
     required property real maximumCelsius
     required property real meanCelsius
+    required property real quantizationMinimumCelsius
+    required property real quantizationMaximumCelsius
     required property int belowRangePixelCount
     required property int aboveRangePixelCount
     required property int inRangePixelCount
@@ -224,7 +226,7 @@ Rectangle {
                     text: "Vmin: "
                           + (root.autoScale
                               ? root.minimumCelsius.toFixed(2)
-                              : "10.00")
+                              : root.quantizationMinimumCelsius.toFixed(2))
                           + " °C"
                     color: "#d8d8df"
                     font.pixelSize: 16
@@ -237,7 +239,7 @@ Rectangle {
                     text: "Vmax: "
                           + (root.autoScale
                               ? root.maximumCelsius.toFixed(2)
-                              : "45.00")
+                              : root.quantizationMaximumCelsius.toFixed(2))
                           + " °C"
                     color: "#d8d8df"
                     font.pixelSize: 16

@@ -108,6 +108,12 @@ public:
     // The UI remains pending until the ESP32 response is received.
     Q_INVOKABLE void sendStopCommand();
 
+    // Send the SET_QUANTIZATION command from QML.
+    // mode must be 1, 2, or 3; the UDP frame mode remains the display truth.
+    Q_INVOKABLE void sendSetQuantizationCommand(
+        int mode
+    );
+
 signals:
     // Emitted only when the prepared endpoint is first set or actually changes.
     void endpointChanged();
@@ -133,7 +139,8 @@ private slots:
 
 private:
     void sendCommand(
-        quint8 command
+        quint8 command,
+        quint8 value = 0
     );
 
     void writePendingCommand();
@@ -159,6 +166,7 @@ private:
 
     bool m_commandPending = false;
     quint8 m_pendingCommand = 0;
+    quint8 m_pendingCommandValue = 0;
     bool m_cameraRunning = false;
 };
 
