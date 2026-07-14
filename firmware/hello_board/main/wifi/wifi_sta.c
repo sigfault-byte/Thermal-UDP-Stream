@@ -13,8 +13,8 @@
 
 #define WIFI_CONNECTED_BIT BIT0
 
-#define WIFI_SSID "SSID"
-#define WIFI_PASS "PASSWORD"
+#define WIFI_SSID "NOS-21BA"
+#define WIFI_PASS "M5MJMXCZ"
 
 static const char *TAG = "wifi_sta";
 static EventGroupHandle_t wifi_event_group;

@@ -7,6 +7,7 @@
 #include "led/led.h"
 #include "wifi/wifi_sta.h"
 #include "network/udp_sender.h"
+#include "network/tcp_command_server.h"
 #include "camera/camera_i2c.h"
 #include "camera/MLX90640_I2C_Driver.h"
 #include "camera/MLX90640_API.h"
@@ -15,6 +16,8 @@
 #define MLX90640_CONTROL_REG 0x800D
 #define UDP_TASK_STACK_SIZE 8192
 #define UDP_TASK_PRIORITY 5
+#define TCP_COMMAND_TASK_STACK_SIZE 4096
+#define TCP_COMMAND_TASK_PRIORITY 5
 
 static uint16_t ee_data[MLX90640_EEPROM_WORDS];
 static paramsMLX90640 mlx_params;
@@ -110,6 +113,21 @@ void app_main(void)
     printf("Wi-Fi init\n");
     wifi_init_sta();
     wifi_wait_connected();
+
+    printf("Starting TCP command server\n");
+
+    /*
+     * Start the TCP command server after Wi-Fi has an IP address.
+     * The task owns the listening socket and handles one client at a time.
+     */
+    xTaskCreate(
+        tcp_command_server_task,       // FreeRTOS task function
+        "tcp_command",                // Task name shown in diagnostics
+        TCP_COMMAND_TASK_STACK_SIZE,  // Stack reserved for socket handling
+        NULL,                         // No startup parameter is needed yet
+        TCP_COMMAND_TASK_PRIORITY,    // Same priority class as UDP streaming
+        NULL                          // No task handle is needed by app_main
+    );
 
     printf("Starting UDP thermal stream\n");
 

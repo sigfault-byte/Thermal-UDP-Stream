@@ -100,6 +100,7 @@ cd viewer
 cmake -S . -B build
 cmake --build build
 ./build/padawan_viewer
+./build/padawan_viewer -h
 ```
 
 Start python receiver

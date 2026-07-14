@@ -14,7 +14,7 @@
 #include "camera/MLX90640_API.h"
 #include "utils/quantization.h"
 
-#define DEST_IP   "192.168.X.X"
+#define DEST_IP   "192.168.1.3"
 #define DEST_PORT 5005
 
 static const char *TAG = "udp_sender";
@@ -117,6 +117,6 @@ void udp_sender_task(void *pvParameters)
                sizeof(dest_addr));
 
         counter++;
-        vTaskDelay(pdMS_TO_TICKS(250));
+        // vTaskDelay(pdMS_TO_TICKS(250));
     }
 }
