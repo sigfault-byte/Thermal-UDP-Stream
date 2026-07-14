@@ -9,6 +9,7 @@
 #include "network/udp_sender.h"
 #include "network/tcp_command_server.h"
 #include "network/handshake_broadcaster.h"
+#include "network/stream_control.h"
 #include "camera/camera_i2c.h"
 #include "camera/MLX90640_I2C_Driver.h"
 #include "camera/MLX90640_API.h"
@@ -116,6 +117,9 @@ void app_main(void)
     printf("Wi-Fi init\n");
     wifi_init_sta();
     wifi_wait_connected();
+
+    printf("Stream control init\n");
+    stream_control_init();
 
     printf("Starting handshake broadcaster\n");
 

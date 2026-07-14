@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -12,6 +13,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "network/stream_control.h"
+#include "protocol/command_packet.h"
 
 /*
  * This is the command TCP port.
@@ -26,12 +29,14 @@
  */
 #define TCP_COMMAND_BACKLOG 1
 
-/*
- * Commands are not parsed yet, so the first receiver buffer can stay small.
- * The future packet parser can replace this byte logger without changing
- * the socket lifecycle.
- */
 #define TCP_COMMAND_RX_BUFFER_SIZE 64
+
+/*
+ * TCP is a byte stream, so recv() can return a partial command packet, one
+ * complete command packet, or several command packets together.
+ */
+#define TCP_COMMAND_ACCUMULATOR_SIZE \
+    (TCP_COMMAND_RX_BUFFER_SIZE * 2)
 
 /*
  * If creating, binding, listening, or accepting fails, the task waits before
@@ -42,9 +47,8 @@
 static const char *TAG = "tcp_command";
 
 /*
- * Turn the received bytes into a compact hex preview.
- * This keeps v1 useful for protocol bring-up without deciding the protocol
- * framing rules yet.
+ * Turn bytes into a compact hex preview.
+ * This remains useful when a malformed command packet arrives.
  */
 static void log_received_bytes(
     const uint8_t *buffer,
@@ -78,6 +82,115 @@ static void log_received_bytes(
     ESP_LOGI(TAG, "Received %d byte(s): %s", length, hex_preview);
 }
 
+static bool send_command_response(
+    int client_sock,
+    uint8_t command,
+    uint8_t status
+)
+{
+    command_response_t response;
+
+    /*
+     * The protocol helper fills the shared magic/version and the TCP server
+     * chooses which command/status should be echoed back.
+     */
+    command_response_init(
+        &response,
+        command,
+        status
+    );
+
+    /*
+     * The response is only 11 bytes, so one send() should normally write it
+     * all. Still, check the byte count because TCP write errors matter.
+     */
+    ssize_t bytes_sent = send(
+        client_sock,
+        &response,
+        sizeof(response),
+        0
+    );
+
+    if (bytes_sent != (ssize_t)sizeof(response)) {
+        ESP_LOGE(
+            TAG,
+            "Failed to send command response, sent=%zd errno=%d",
+            bytes_sent,
+            errno
+        );
+        return false;
+    }
+
+    ESP_LOGI(
+        TAG,
+        "Command response sent: command=%u status=%u",
+        command,
+        status
+    );
+
+    return true;
+}
+
+static bool process_command_packet(
+    int client_sock,
+    uint32_t peer_addr_s_addr,
+    const uint8_t packet_bytes[COMMAND_PACKET_SIZE]
+)
+{
+    command_packet_t packet;
+    uint8_t status = COMMAND_STATUS_OK;
+
+    /*
+     * Copy raw TCP bytes into the packed request structure.
+     * This avoids alignment surprises from casting a byte buffer directly.
+     */
+    memcpy(
+        &packet,
+        packet_bytes,
+        sizeof(packet)
+    );
+
+    /*
+     * If the request is malformed, echo the command byte when possible so the
+     * viewer can correlate the response with its pending command.
+     */
+    if (!command_packet_is_valid_request(&packet)) {
+        status = COMMAND_STATUS_ERROR;
+
+        ESP_LOGW(TAG, "Invalid command packet");
+        log_received_bytes(packet_bytes, COMMAND_PACKET_SIZE);
+    } else {
+        /*
+         * START uses the TCP peer IP as the UDP thermal frame destination.
+         * The viewer discovers the ESP, connects back over TCP, and that TCP
+         * peer address becomes the unicast destination for UDP frames.
+         */
+        if (packet.command == COMMAND_START) {
+            stream_control_start(peer_addr_s_addr);
+        }
+
+        /*
+         * STOP disables frame reads/sends but leaves discovery and TCP alive.
+         */
+        if (packet.command == COMMAND_STOP) {
+            stream_control_stop();
+        }
+
+        ESP_LOGI(
+            TAG,
+            "Command received: command=%u value=%u",
+            packet.command,
+            packet.value
+        );
+    }
+
+    return send_command_response(
+        client_sock,
+        packet.command,
+        status
+    );
+}
+
 /*
  * Serve one connected client until it disconnects or the socket reports an
  * error. This keeps connection handling separate from the listening loop.
@@ -90,8 +203,26 @@ static void handle_client(
     /* Holds the printable IPv4 address of the connected client. */
     char client_ip[INET_ADDRSTRLEN];
 
-    /* Holds one chunk of unparsed command bytes from the TCP stream. */
+    /* Holds one chunk of raw bytes returned by recv(). */
     uint8_t rx_buffer[TCP_COMMAND_RX_BUFFER_SIZE];
+
+    /*
+     * Holds bytes across recv() calls until at least one full 11-byte command
+     * packet is available.
+     */
+    uint8_t command_buffer[TCP_COMMAND_ACCUMULATOR_SIZE];
+
+    /* Number of bytes currently waiting in command_buffer. */
+    size_t command_buffer_length = 0;
+
+    /* Set false when a read/write failure means this client should close. */
+    bool client_alive = true;
+
+    /*
+     * Capture the peer IP once. START commands from this TCP client use this
+     * address as the UDP thermal destination.
+     */
+    uint32_t peer_addr_s_addr = client_addr->sin_addr.s_addr;
 
     /* Convert the client's binary IPv4 address into dotted decimal text. */
     inet_ntop(
@@ -110,7 +241,7 @@ static void handle_client(
     );
 
     /* Read from the connected TCP stream until the client goes away. */
-    while (1) {
+    while (client_alive) {
         /* recv blocks this task until data, disconnect, or an error arrives. */
         int bytes_received = recv(
             client_sock,
@@ -121,7 +252,55 @@ static void handle_client(
 
         /* A positive return means bytes were received into rx_buffer. */
         if (bytes_received > 0) {
-            log_received_bytes(rx_buffer, bytes_received);
+            /*
+             * If the accumulator would overflow, drop the partial bytes and
+             * start fresh. This is simpler than pretending v1 can resync an
+             * arbitrary corrupted TCP stream.
+             */
+            if (
+                command_buffer_length + bytes_received
+                > sizeof(command_buffer)
+            ) {
+                ESP_LOGW(TAG, "Command buffer overflow, dropping partial data");
+                command_buffer_length = 0;
+            }
+
+            /*
+             * Append this recv() chunk to the accumulator. TCP may split or
+             * merge command packets however it wants.
+             */
+            memcpy(
+                command_buffer + command_buffer_length,
+                rx_buffer,
+                bytes_received
+            );
+            command_buffer_length += bytes_received;
+
+            /*
+             * Process every complete 11-byte packet currently buffered.
+             * Partial trailing bytes stay buffered for the next recv().
+             */
+            while (command_buffer_length >= COMMAND_PACKET_SIZE) {
+                if (
+                    !process_command_packet(
+                        client_sock,
+                        peer_addr_s_addr,
+                        command_buffer
+                    )
+                ) {
+                    client_alive = false;
+                    break;
+                }
+
+                command_buffer_length -= COMMAND_PACKET_SIZE;
+
+                memmove(
+                    command_buffer,
+                    command_buffer + COMMAND_PACKET_SIZE,
+                    command_buffer_length
+                );
+            }
+
             continue;
         }
 
