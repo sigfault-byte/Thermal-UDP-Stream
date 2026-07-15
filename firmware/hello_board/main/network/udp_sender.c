@@ -16,6 +16,9 @@
 #include "camera/mlx90640_runtime.h"
 #include "utils/quantization.h"
 
+#include "esp_timer.h"
+#include <inttypes.h>
+
 #define DEST_PORT 5005
 
 static const char *TAG = "udp_sender";
@@ -25,6 +28,8 @@ void udp_sender_task(void *pvParameters)
     paramsMLX90640 *params = (paramsMLX90640 *)pvParameters;
 
     uint32_t counter = 0;
+    int64_t acquisition_sequence = 0;
+    int64_t previous_send_us = 0;
 
     struct sockaddr_in dest_addr = {
         .sin_family = AF_INET,
@@ -63,20 +68,59 @@ void udp_sender_task(void *pvParameters)
         if (!stream_control_get_destination(&destination_addr)) {
             continue;
         }
+        previous_send_us = 0;
 
         while (stream_control_is_running()) {
-            int have0 = 0;
-            int have1 = 0;
+            int complete_pair = 0;
+            int pending_subpage = -1;
+            int64_t pending_sequence = 0;
+            int64_t pending_acquired_us = 0;
 
-            while (stream_control_is_running() && (!have0 || !have1)) {
+            while (stream_control_is_running() && !complete_pair) {
+                const int64_t read_start_us =
+                    esp_timer_get_time();
+
                 int subpage = mlx90640_runtime_get_frame_data(0x33, frameData);
+
+                const int64_t read_end_us =
+                    esp_timer_get_time();
+
                 if (subpage < 0) {
                     ESP_LOGW(TAG, "Failed to read MLX90640 frame: %d", subpage);
                     continue;
                 }
 
-                float ta = MLX90640_GetTa(frameData, params);
-                float tr = ta - 8.0f;
+                if (subpage != 0 && subpage != 1) {
+                    ESP_LOGW(
+                        TAG,
+                        "Ignoring invalid MLX90640 subpage type %d",
+                        subpage
+                    );
+                    continue;
+                }
+
+                acquisition_sequence++;
+                const int64_t current_sequence = acquisition_sequence;
+                const int64_t current_acquired_us = read_end_us;
+                const int replaces_pending =
+                    pending_subpage == subpage;
+
+                if (replaces_pending) {
+                    ESP_LOGW(
+                        TAG,
+                        "Replacing stale duplicate subpage %d: "
+                        "old_seq=%" PRId64 " new_seq=%" PRId64,
+                        subpage,
+                        pending_sequence,
+                        current_sequence
+                    );
+                }
+
+                const float ta = MLX90640_GetTa(frameData, params);
+                const float tr = ta - 8.0f;
+
+                const int64_t calculate_start_us =
+                    esp_timer_get_time();
 
                 MLX90640_CalculateTo(
                     frameData,
@@ -85,6 +129,9 @@ void udp_sender_task(void *pvParameters)
                     tr,
                     temp_subpage
                 );
+
+                const int64_t calculate_end_us =
+                    esp_timer_get_time();
 
                 for (int row = 0; row < THERMAL_HEIGHT; row++) {
                     for (int column = 0; column < THERMAL_WIDTH; column++) {
@@ -112,14 +159,38 @@ void udp_sender_task(void *pvParameters)
                     }
                 }
 
-                // for (int i = 0; i < THERMAL_PIXELS; i++) {
-                //     if (temp_subpage[i] != 0.0f) {
-                //         temperatures[i] = temp_subpage[i];
-                //     }
-                // }
+                /*
+                 * Keep exactly one pending half. Same-type acquisitions replace
+                 * stale pixels; opposite-type acquisitions complete the frame.
+                 */
+                if (pending_subpage < 0 || replaces_pending) {
+                    pending_subpage = subpage;
+                    pending_sequence = current_sequence;
+                    pending_acquired_us = current_acquired_us;
+                } else {
+                    complete_pair = 1;
 
-                if (subpage == 0) have0 = 1;
-                if (subpage == 1) have1 = 1;
+                    ESP_LOGI(
+                        TAG,
+                        "Complete subpage pair: pending=%d seq=%" PRId64
+                        " age=%" PRId64 " us current=%d seq=%" PRId64,
+                        pending_subpage,
+                        pending_sequence,
+                        current_acquired_us - pending_acquired_us,
+                        subpage,
+                        current_sequence
+                    );
+                }
+
+                ESP_LOGI(
+                    TAG,
+                    "subpage=%d seq=%" PRId64
+                    " read=%" PRId64 " us calculate=%" PRId64 " us",
+                    subpage,
+                    current_sequence,
+                    read_end_us - read_start_us,
+                    calculate_end_us - calculate_start_us
+                );
             }
 
             if (!stream_control_is_running()) {
@@ -160,12 +231,52 @@ void udp_sender_task(void *pvParameters)
 
             dest_addr.sin_addr.s_addr = destination_addr;
 
-            sendto(sock, &packet, sizeof(packet), 0,
-                   (struct sockaddr *)&dest_addr,
-                   sizeof(dest_addr));
+            const ssize_t sent_bytes =
+                sendto(
+                    sock,
+                    &packet,
+                    sizeof(packet),
+                    0,
+                    (struct sockaddr *)&dest_addr,
+                    sizeof(dest_addr)
+                );
 
+            if (sent_bytes < 0) {
+                ESP_LOGE(
+                    TAG,
+                    "Failed to send thermal packet"
+                );
+                continue;
+            }
+
+            if ((size_t)sent_bytes != sizeof(packet)) {
+                ESP_LOGW(
+                    TAG,
+                    "Partial UDP send: sent=%d expected=%d",
+                    (int)sent_bytes,
+                    (int)sizeof(packet)
+                );
+                continue;
+            }
+
+            const int64_t now_us =
+                esp_timer_get_time();
+
+            if (previous_send_us != 0) {
+                const int64_t interval_us =
+                    now_us - previous_send_us;
+
+                ESP_LOGI(
+                    TAG,
+                    "Complete frame interval: %" PRId64
+                    " us, FPS: %.2f",
+                    interval_us,
+                    1000000.0 / (double)interval_us
+                );
+            }
+
+            previous_send_us = now_us;
             counter++;
-            // vTaskDelay(pdMS_TO_TICKS(250));
         }
     }
 }

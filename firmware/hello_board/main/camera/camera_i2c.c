@@ -12,7 +12,7 @@
 #define I2C_SCL_GPIO    14
 #define I2C_PULL_ENABLE_GPIO 3
 
-#define I2C_FREQ_HZ     100000
+#define I2C_FREQ_HZ     400000
 
 void raw_frame_to_pixels(
     const uint16_t frame_words[THERMAL_PIXELS],
@@ -103,12 +103,13 @@ void camera_i2c_scan(void)
 
         if (ret == ESP_OK) {
             printf("0x%02X -> ACK / DEVICE FOUND\n", addr);
-        } else {
-            printf("0x%02X -> %s (%d)\n",
-                   addr,
-                   esp_err_to_name(ret),
-                   ret);
         }
+        // else {
+        //     printf("0x%02X -> %s (%d)\n",
+        //            addr,
+        //            esp_err_to_name(ret),
+        //            ret);
+        // }
 
         vTaskDelay(pdMS_TO_TICKS(5));
     }
