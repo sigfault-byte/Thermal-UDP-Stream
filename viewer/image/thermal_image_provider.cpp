@@ -1,9 +1,96 @@
-#include <QColor>
 #include <QDebug>
 
+#include <array>
+#include <cmath>
 #include <cstring>
 
 #include "thermal_image_provider.h"
+
+namespace
+{
+    struct PaletteStop
+    {
+        double position;
+        int red;
+        int green;
+        int blue;
+    };
+
+    /*
+     * Compact approximation of Matplotlib's "inferno" map.
+     *
+     * The original Python receiver used cmap="inferno"; keeping the same
+     * dark-purple -> orange -> pale-yellow progression makes low contrast
+     * thermal frames much easier to read than the previous rainbow-style HSV
+     * ramp, especially around the middle temperatures.
+     */
+    constexpr std::array<PaletteStop, 9> InfernoStops = {{
+        {0.000,   0,   0,   4},
+        {0.125,  31,  12,  72},
+        {0.250,  85,  15, 109},
+        {0.375, 136,  34, 106},
+        {0.500, 186,  54,  85},
+        {0.625, 227,  89,  51},
+        {0.750, 249, 140,  10},
+        {0.875, 249, 201,  50},
+        {1.000, 252, 255, 164},
+    }};
+
+    QRgb sampleInfernoPalette(int thermalIndex)
+    {
+        const double position =
+            static_cast<double>(thermalIndex)
+            / 253.0;
+
+        for (qsizetype index = 1;
+             index < static_cast<qsizetype>(InfernoStops.size());
+             ++index)
+        {
+            const PaletteStop &right =
+                InfernoStops[index];
+
+            if (position > right.position)
+                continue;
+
+            const PaletteStop &left =
+                InfernoStops[index - 1];
+
+            const double span =
+                right.position - left.position;
+
+            const double localPosition =
+                span > 0.0
+                    ? (position - left.position) / span
+                    : 0.0;
+
+            const auto interpolate =
+                [localPosition](int start, int end)
+                {
+                    return static_cast<int>(
+                        std::lround(
+                            start
+                            + (end - start) * localPosition
+                        )
+                    );
+                };
+
+            return qRgb(
+                interpolate(left.red, right.red),
+                interpolate(left.green, right.green),
+                interpolate(left.blue, right.blue)
+            );
+        }
+
+        const PaletteStop &last =
+            InfernoStops.back();
+
+        return qRgb(
+            last.red,
+            last.green,
+            last.blue
+        );
+    }
+}
 
 ThermalImageProvider::ThermalImageProvider()
     : QQuickImageProvider(QQuickImageProvider::Image),
@@ -29,40 +116,22 @@ QVector<QRgb> ThermalImageProvider::createColorTable()
 
     for (int value = 0; value < 256; ++value)
     {
-        /*
-         * convert the byte value into an HSV color.
-         *
-         * value 0:
-         *     hue approximately 240° → blue
-         *     low brightness
-         *
-         * value 255:
-         *     hue approximately 0° → red
-         *     full brightness
-         *
-         * Every byte therefore selects one color from a
-         * 256-entry blue-to-red thermal palette.
-         */
+        if (
+            value == InvalidValue
+            || value == ReservedValue
+        )
+        {
+            colorTable.append(qRgb(0, 0, 0));
+            continue;
+        }
 
-        const int hue =
-            240 - ((value * 240) / 255);
-
-        const int brightness =
-            48 + ((value * 207) / 255);
-
-        const QColor color =
-            QColor::fromHsv(
-                hue,
-                255,
-                brightness
-            );
-
-        // Store the RGB representation in the color table.
-        colorTable.append(color.rgb());
-
-
+        // Protocol values 1..254 are the actual thermal ramp.
+        colorTable.append(
+            sampleInfernoPalette(value - 1)
+        );
     }
-    // override the sentinel entries
+
+    // Keep sentinel entries distinct from real temperatures.
     colorTable[0] =
         qRgb(255, 0, 255);
 

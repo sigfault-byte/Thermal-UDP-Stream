@@ -19,8 +19,8 @@
  */
 typedef struct __attribute__((packed)) {
     uint8_t magic[8];
-    uint8_t version;
-    uint8_t type;
+    uint8_t version; // 2 now
+    uint8_t type; // 01
     uint32_t frame_id;
     uint32_t timestamp_ms;
     uint8_t quantization_mode;

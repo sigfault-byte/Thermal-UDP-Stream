@@ -1,19 +1,13 @@
 # **ESP32 Thermal UDP Stream**
 
-The purpose of this project is to build an embedded thermal-imaging system that streams quantized MLX90640 frames over UDP to live Python and Qt viewers.”
-
-An ESP32-S2 reads an MLX90640 thermal camera, converts the raw
-measurements into calibrated temperatures using the official Melexis
-library, quantizes the temperatures into a compact binary format, and
-streams complete thermal frames over UDP to either a C++/Qt viewer or
-a lightweight Python receiver.
+The purpose of this project is to build an embedded thermal imaging system that acquires data from an MLX90640 infrared sensor, converts the raw measurements into calibrated temperatures using the official Melexis library, quantizes the resulting thermal frame into a compact binary representation, and streams the data over UDP to real-time Python and C++/Qt viewers. In parallel, the ESP32-S2 exposes a dedicated TCP control interface that accepts commands such as starting or stopping the stream and changing the quantization mode at runtime, separating high-throughput data streaming from reliable configuration and control.
 
 
 ### Hardware
 ```text
 Microcontroller : ESP32-S2 (Flipper Zero Wi-Fi Dev Board)
 Thermal camera  : MLX90640-D55 (24×32 IR array)
-Receiver        : Any computer capable of running Python | * Streams complete thermal frames over Wi-Fi to a desktop receiver.
+Receiver        : Any computer capable of running Python | Streams complete thermal frames over Wi-Fi to a desktop receiver.
 ```
 
 ### Environment
@@ -29,35 +23,38 @@ OR
 `https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/`
 
 
-## **Overview**
+## Overview
 
-A custom firmware was developed using the ESP-IDF SDK.
+A custom firmware was developed using the ESP-IDF framework.
 
 The firmware:
 
-- Configures the ESP32 and MLX90640 over I²C (SDA on IO33 SCL on IO14).
-- Reads the factory calibration EEPROM.
-- Uses the official Melexis API to compute calibrated object temperatures.
-- Merges the two chessboard subpages into a complete thermal frame.
-- Quantizes temperatures into a single byte per pixel.
-- Packs the frame into a custom UDP protocol.
-- Streams the packet over Wi-Fi to a Python receiver.
+- Configures the ESP32-S2 and MLX90640 over I²C (SDA on GPIO33, SCL on GPIO14).
+- Periodically broadcasts an obfuscated UDP discovery packet, allowing compatible viewers to automatically detect the device.
+- Reads and parses the sensor’s factory calibration EEPROM.
+- Uses the official Melexis API to convert raw sensor data into calibrated object temperatures.
+- Merges the two MLX90640 chessboard subpages into complete thermal frames.
+- Quantizes the temperature data into a compact one-byte-per-pixel representation.
+- Encapsulates each frame in a custom binary application protocol.
+- Streams the resulting packets over Wi-Fi using UDP.
+- Exposes a dedicated TCP control interface for runtime configuration (start/stop streaming, quantization mode, refresh rate, etc.).
 
-The quantization uses:
-
+The default quantization scheme is:
 ```
 < 10°C      -> 0
 10–45°C     -> 1–254
 > 45°C      -> 255
 ```
 
-allowing the complete **24×32** thermal frame (768 pixels) to fit comfortably inside a single UDP packet.
+This representation allows an entire 32 × 24 thermal frame (768 pixels), together with its protocol header, to fit comfortably within a single UDP datagram.
 
 ## C++ / Qt Viewer
 
-The C++ receiver requires installing [Qt](https://doc.qt.io/qt-6/get-and-install-qt-cli.html).
+The desktop viewer is implemented in modern C++ using Qt 6 and QML.
 
-The viewer receives UDP datagrams, validates and decodes them, displays the thermal frame through a QML interface, computes basic frame analytics, supports both rolling and fixed display scales, performs a simple hotspot detection, and plots a live time series of the frame mean temperature and hotspot temperature.
+The application automatically discovers the device, receives and validates UDP datagrams, decodes the custom binary protocol, and renders the thermal image in real time. It provides both rolling and fixed display scales, computes live frame statistics (minimum, maximum, mean, and valid pixel counts), performs lightweight hotspot detection, and displays real-time temperature plots for both the frame mean and the detected hotspot.
+
+The viewer also communicates with the ESP32 through the TCP control channel, allowing runtime configuration of parameters such as the quantization mode, streaming state, and sensor refresh rate without interrupting the data stream.
 
 ![qt_viewer](pictures/qt_viewer.png)
 
@@ -121,6 +118,6 @@ uv run stream.py
 - Export of recorded thermal sequences for offline analysis.
 ```
 
-## Design Notes
+## Notes
 
 `journals/` contains personal development notes, implementation decisions, encountered issues, and lessons learned.
