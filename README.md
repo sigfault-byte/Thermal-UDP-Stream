@@ -1,29 +1,61 @@
-# **ESP32 Thermal UDP Stream**
+# **ESP32 Thermal Telemetry System**
 
-The purpose of this project is to build an embedded thermal imaging system that acquires data from an MLX90640 infrared sensor, converts the raw measurements into calibrated temperatures using the official Melexis library, quantizes the resulting thermal frame into a compact binary representation, and streams the data over UDP to real-time Python and C++/Qt viewers. In parallel, the ESP32-S2 exposes a dedicated TCP control interface that accepts commands such as starting or stopping the stream and changing the quantization mode at runtime, separating high-throughput data streaming from reliable configuration and control.
+An end-to-end embedded telemetry system built around an ESP32-S2 and an MLX90640 thermal camera.
 
+The project demonstrates the complete acquisition, processing, transport, and visualization pipeline of thermal sensor data. Firmware running on the ESP32 acquires raw infrared measurements over I²C, calibrates and quantizes the thermal frame, packages it into a lightweight binary protocol, and streams it over Wi-Fi using UDP.
 
-### Hardware
-```text
-Microcontroller : ESP32-S2 (Flipper Zero Wi-Fi Dev Board)
-Thermal camera  : MLX90640-D55 (24×32 IR array)
-Receiver        : Any computer capable of running Python | Streams complete thermal frames over Wi-Fi to a desktop receiver.
+A companion Qt 6 desktop application automatically discovers the device, configures it through a TCP control channel, receives the telemetry stream, renders the thermal image in real time, and performs live statistics and hotspot analysis.
+
+The project was designed as an exploration of embedded systems, firmware architecture, telemetry protocols, and desktop visualization rather than as a thermal camera application alone.
+
+## Features
+
+- ESP32-S2 firmware built with ESP-IDF and FreeRTOS
+- MLX90640 thermal acquisition over I²C
+- Factory calibration using the official Melexis API
+- 8-bit configurable temperature quantization
+- Custom binary telemetry protocol
+- Automatic UDP device discovery
+- Reliable TCP control channel
+- Low-latency UDP thermal streaming
+- Qt 6/QML desktop viewer
+- Python receiver
+- Real-time hotspot detection
+- Rolling and fixed display scales
+- Replay mode
+- Live statistics and telemetry monitoring
+
+## Hardware
+
+| Component | Description |
+|-----------|-------------|
+| MCU | ESP32-S2 (Flipper Zero Wi-Fi Dev Board) |
+| Sensor | MLX90640-D55 (24×32 infrared array) |
+| Desktop | Qt 6 application or Python viewer |
 ```
 
-### Environment
+## Firmware
 
 - ESP-IDF
-- Python with `uv`
-OR
-- Qt 6.8+ with Qt Quick, Qt Network, and Qt Graphs 
-- CMake 3.16+
+
+## Desktop Viewer
+
+- Qt 6.8+
+- Qt Quick
+- Qt Network
+- Qt Graphs
+
+## Python Viewer
+
+- Python 3.12+
+- uv
 
 
 [ESP-IDF installation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/)  
 `https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/`
 
 
-## Overview
+## Firmware Pipeline
 
 A custom firmware was developed using the ESP-IDF framework.
 
@@ -52,7 +84,7 @@ This representation allows an entire 32 × 24 thermal frame (768 pixels), togeth
 
 The desktop viewer is implemented in modern C++ using Qt 6 and QML.
 
-The application automatically discovers the device, receives and validates UDP datagrams, decodes the custom binary protocol, and renders the thermal image in real time. It provides both rolling and fixed display scales, computes live frame statistics (minimum, maximum, mean, and valid pixel counts), performs lightweight hotspot detection, and displays real-time temperature plots for both the frame mean and the detected hotspot.
+The application automatically discovers the device, receives and validates UDP datagrams, decodes the custom binary protocol, and renders the thermal image in real time. The networking layer is isolated from the presentation layer through a shared FrameModel, allowing protocol decoding, statistics computation, and QML rendering to evolve independently. It provides both rolling and fixed display scales, computes live frame statistics (minimum, maximum, mean, and valid pixel counts), performs lightweight hotspot detection, and displays real-time temperature plots for both the frame mean and the detected hotspot.
 
 The viewer also communicates with the ESP32 through the TCP control channel, allowing runtime configuration of parameters such as the quantization mode, streaming state, and sensor refresh rate without interrupting the data stream.
 
@@ -65,19 +97,12 @@ The Python receiver reconstructs the temperature values and displays the thermal
 ![hand](pictures/hand.png)
 ![computer](pictures/computer.png)
 
-The MLX90640 operates at its factory default refresh rate of **2 Hz**.
-
 # **Running**
 
 Configure the Wi-Fi credentials in: 
 ```text
 /main/wifi/wifi_sta.c
 ``` 
-
-Update the receiver IP address in:
-```text
-`main/network/udp_sender.c`
-```
 
 Build the firmware:
 ```text
@@ -113,11 +138,6 @@ uv run stream.py
 - Adaptive color palettes and dynamic range visualization.
 - Temporal filtering and noise reduction.
 - Thermal motion detection on thermal time series.
-- UDP broadcast discovery instead of a fixed receiver IP.
 - Higher frame rates.
 - Export of recorded thermal sequences for offline analysis.
 ```
-
-## Notes
-
-`journals/` contains personal development notes, implementation decisions, encountered issues, and lessons learned.

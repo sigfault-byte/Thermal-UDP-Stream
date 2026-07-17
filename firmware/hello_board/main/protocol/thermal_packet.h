@@ -18,6 +18,7 @@
  * keep the same offsets they had in protocol version 1.
  */
 typedef struct __attribute__((packed)) {
+    // 8 + 1 + 1 + 4 + 4 + 1
     uint8_t magic[8];
     uint8_t version; // 2 now
     uint8_t type; // 01
