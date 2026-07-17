@@ -32,7 +32,7 @@ The project was designed as an exploration of embedded systems, firmware archite
 | MCU | ESP32-S2 (Flipper Zero Wi-Fi Dev Board) |
 | Sensor | MLX90640-D55 (24×32 infrared array) |
 | Desktop | Qt 6 application or Python viewer |
-```
+
 
 ## Firmware
 
@@ -51,9 +51,7 @@ The project was designed as an exploration of embedded systems, firmware archite
 - uv
 
 
-[ESP-IDF installation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/)  
-`https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/`
-
+> [ESP-IDF installation](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/)
 
 ## Firmware Pipeline
 
@@ -72,6 +70,7 @@ The firmware:
 - Exposes a dedicated TCP control interface for runtime configuration (start/stop streaming, quantization mode, refresh rate, etc.).
 
 The default quantization scheme is:
+
 ```
 < 10°C      -> 0
 10–45°C     -> 1–254
@@ -135,7 +134,6 @@ uv run stream.py
 
 ## Future Work
 ```text
-- Adaptive color palettes and dynamic range visualization.
 - Temporal filtering and noise reduction.
 - Thermal motion detection on thermal time series.
 - Higher frame rates.
