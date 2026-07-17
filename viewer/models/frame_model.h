@@ -31,6 +31,12 @@ class FrameModel : public QObject
         WRITE setScaleMode
         NOTIFY scaleModeChanged
     )
+    Q_PROPERTY(
+        bool smoothDisplay
+        READ smoothDisplay
+        WRITE setSmoothDisplay
+        NOTIFY smoothDisplayChanged
+    )
 
     //statistics
     Q_PROPERTY(
@@ -289,6 +295,9 @@ public:
     ScaleMode scaleMode() const;
     void setScaleMode(ScaleMode mode);
 
+    bool smoothDisplay() const;
+    void setSmoothDisplay(bool enabled);
+
     double minimumCelsius() const;
     double maximumCelsius() const;
     double meanCelsius() const;
@@ -363,6 +372,7 @@ signals:
     void frameIdChanged();
     void imageRevisionChanged();
     void scaleModeChanged();
+    void smoothDisplayChanged();
 
     void statisticsChanged();
     void timestampMsChanged();
@@ -378,6 +388,7 @@ private:
     int m_imageRevision = 0;
 
     ScaleMode m_scaleMode = ScaleMode::Raw;
+    bool m_smoothDisplay = false;
 
     FrameStatistics m_statistics;
     ReceiverStatistics m_receiverStatistics;

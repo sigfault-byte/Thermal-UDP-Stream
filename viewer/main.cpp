@@ -318,6 +318,23 @@ int main(int argc, char *argv[])
         thermalImageProvider
     );
 
+    QObject::connect(
+        &frameModel,
+        &FrameModel::smoothDisplayChanged,
+        &frameModel,
+        [
+            &frameModel,
+            thermalImageProvider
+        ]()
+        {
+            thermalImageProvider->setSmoothDisplay(
+                frameModel.smoothDisplay()
+            );
+
+            frameModel.notifyImageUpdated();
+        }
+    );
+
     // Expose the existing C++ FrameModel instance to QML.
     //
     // After this, QML can refer to this exact object as:
@@ -480,6 +497,16 @@ int main(int argc, char *argv[])
                 static_cast<int>(frame.frameId)
             );
 
+            // Keep provider display settings synchronized before generating
+            // the image so toggles affect this frame, not the next one.
+            thermalImageProvider->setScaleMode(
+                frameModel.scaleMode()
+            );
+
+            thermalImageProvider->setSmoothDisplay(
+                frameModel.smoothDisplay()
+            );
+
             // Update the image provider's internal QImage.
             //
             // QML does not receive this image directly from the signal.
@@ -487,11 +514,6 @@ int main(int argc, char *argv[])
             thermalImageProvider->updateFrame(
                 frame.pixels,
                 statistics
-            );
-
-            // Keep the provider's display scaling mode synchronized with the model.
-            thermalImageProvider->setScaleMode(
-                frameModel.scaleMode()
             );
 
             // Increment the image revision and emit imageRevisionChanged().

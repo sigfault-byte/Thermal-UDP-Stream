@@ -61,6 +61,28 @@ Rectangle {
                 text: "Hotspot"
                 checked: false
             }
+
+            Switch {
+                id: smoothDisplaySwitch
+
+                text: "Smooth"
+                checked: frameModel.smoothDisplay
+
+                onToggled:
+                    frameModel.smoothDisplay = checked
+            }
+        }
+        Text {
+            Layout.maximumWidth: 260
+            Layout.alignment: Qt.AlignRight
+
+            visible: frameModel.smoothDisplay
+
+            text: "Display-only interpolation; extra detail is not sensor data."
+            color: "#b8b8c4"
+            font.pixelSize: 11
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignRight
         }
         Rectangle {
             Layout.fillWidth: true

@@ -17,6 +17,9 @@ public:
     // Select how incoming thermal values are mapped to palette indices.
     void setScaleMode(FrameModel::ScaleMode mode);
 
+    // Select whether QML receives the native image or a 4x bicubic display image.
+    void setSmoothDisplay(bool enabled);
+
     // replace the currently displayed image using one exact
     // 32 × 24 thermal payload :d
     void updateFrame(
@@ -39,6 +42,9 @@ private:
     static constexpr int ImageWidth = 32;
     static constexpr int ImageHeight = 24;
     static constexpr int PixelCount = ImageWidth * ImageHeight;
+    static constexpr int SmoothScaleFactor = 4;
+    static constexpr int SmoothImageWidth = ImageWidth * SmoothScaleFactor;
+    static constexpr int SmoothImageHeight = ImageHeight * SmoothScaleFactor;
 
     static constexpr quint8 InvalidValue = 0;
     static constexpr quint8 ReservedValue = 255;
@@ -51,6 +57,25 @@ private:
         const QByteArray &pixels,
         const FrameStatistics &statistics
     );
+    QImage createSmoothImage() const;
+    QRgb smoothPixelColor(int outputX, int outputY) const;
+    double bicubicSample(double sourceX, double sourceY) const;
+    double cubicInterpolate(
+        double p0,
+        double p1,
+        double p2,
+        double p3,
+        double fraction
+    ) const;
+    uchar sourcePixel(int x, int y) const;
+    bool hasSentinelInBicubicNeighborhood(
+        int anchorX,
+        int anchorY
+    ) const;
+    QRgb nearestSourceColor(
+        double sourceX,
+        double sourceY
+    ) const;
 
     // The most recently received thermal frame represented
     // as an indexed-color image.
@@ -61,6 +86,7 @@ private:
 
     FrameModel::ScaleMode m_scaleMode =
         FrameModel::ScaleMode::Raw;
+    bool m_smoothDisplay = false;
 };
 
 #endif

@@ -54,6 +54,21 @@ void FrameModel::setScaleMode(ScaleMode mode)
     emit scaleModeChanged();
 }
 
+bool FrameModel::smoothDisplay() const
+{
+    return m_smoothDisplay;
+}
+
+void FrameModel::setSmoothDisplay(bool enabled)
+{
+    if (m_smoothDisplay == enabled)
+        return;
+
+    m_smoothDisplay = enabled;
+
+    emit smoothDisplayChanged();
+}
+
 double FrameModel::minimumCelsius() const
 {
     return m_statistics.minimumCelsius;
