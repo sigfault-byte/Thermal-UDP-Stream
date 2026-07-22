@@ -513,7 +513,8 @@ int main(int argc, char *argv[])
             // QML will later request it through image://thermal/...
             thermalImageProvider->updateFrame(
                 frame.pixels,
-                statistics
+                statistics,
+                frame.quantizationMode
             );
 
             // Increment the image revision and emit imageRevisionChanged().

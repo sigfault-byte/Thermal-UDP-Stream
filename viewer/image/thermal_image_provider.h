@@ -24,7 +24,8 @@ public:
     // 32 × 24 thermal payload :d
     void updateFrame(
         const QByteArray &pixels,
-        const FrameStatistics &statistics
+        const FrameStatistics &statistics,
+        quint8 quantizationMode
     );
 
     // called by the QML engine when an Image requests:
@@ -59,7 +60,10 @@ private:
     );
     QImage createSmoothImage() const;
     QRgb smoothPixelColor(int outputX, int outputY) const;
-    double bicubicSample(double sourceX, double sourceY) const;
+    double bicubicNormalizedSample(
+        double sourceX,
+        double sourceY
+    ) const;
     double cubicInterpolate(
         double p0,
         double p1,
@@ -67,7 +71,9 @@ private:
         double p3,
         double fraction
     ) const;
-    uchar sourcePixel(int x, int y) const;
+    quint8 rawSourcePixel(int x, int y) const;
+    double normalizedSourceValue(int x, int y) const;
+    QRgb infernoColor(double normalizedValue) const;
     bool hasSentinelInBicubicNeighborhood(
         int anchorX,
         int anchorY
@@ -83,6 +89,10 @@ private:
 
     // 256 RGB colors. Each incoming byte selects one entry.
     QVector<QRgb> m_colorTable;
+
+    QByteArray m_rawPixels;
+    FrameStatistics m_statistics;
+    quint8 m_quantizationMode = 1;
 
     FrameModel::ScaleMode m_scaleMode =
         FrameModel::ScaleMode::Raw;

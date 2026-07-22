@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "thermal_image_provider.h"
+#include "protocol/thermal_quantization.h"
 
 namespace
 {
@@ -18,30 +19,43 @@ namespace
     };
 
     /*
-     * Compact approximation of Matplotlib's "inferno" map.
+     * Denser approximation of Matplotlib's "inferno" colormap.
      *
-     * The original Python receiver used cmap="inferno"; keeping the same
-     * dark-purple -> orange -> pale-yellow progression makes low contrast
-     * thermal frames much easier to read than the previous rainbow-style HSV
-     * ramp, especially around the middle temperatures.
+     * The original inferno ramp was designed by Nathaniel J. Smith and
+     * Stefan van der Walt for the BIDS/matplotlib colormap project and is
+     * released as CC0/public-domain data:
+     *     https://github.com/BIDS/colormap
+     *
+     * We keep representative RGB stops here and expand them to a 256-entry
+     * table at startup. Smooth mode samples this table after interpolating
+     * normalized scalar values, which matches Matplotlib's visual pipeline
+     * much more closely than interpolating already-quantized palette indices.
      */
-    constexpr std::array<PaletteStop, 9> InfernoStops = {{
-        {0.000,   0,   0,   4},
-        {0.125,  31,  12,  72},
-        {0.250,  85,  15, 109},
-        {0.375, 136,  34, 106},
-        {0.500, 186,  54,  85},
-        {0.625, 227,  89,  51},
-        {0.750, 249, 140,  10},
-        {0.875, 249, 201,  50},
-        {1.000, 252, 255, 164},
+    constexpr std::array<PaletteStop, 18> InfernoStops = {{
+        {0.0000,   0,   0,   4},
+        {0.0588,   9,   6,  38},
+        {0.1176,  27,  12,  65},
+        {0.1765,  47,  10,  84},
+        {0.2353,  70,  10,  93},
+        {0.2941,  94,  16,  91},
+        {0.3529, 120,  28,  85},
+        {0.4118, 144,  38,  76},
+        {0.4706, 169,  47,  66},
+        {0.5294, 193,  58,  53},
+        {0.5882, 215,  72,  39},
+        {0.6471, 234,  91,  23},
+        {0.7059, 248, 115,   9},
+        {0.7647, 251, 146,   6},
+        {0.8235, 248, 181,  28},
+        {0.8824, 246, 215,  70},
+        {0.9412, 250, 242, 132},
+        {1.0000, 252, 255, 164},
     }};
 
-    QRgb sampleInfernoPalette(int thermalIndex)
+    QRgb sampleInfernoPalette(double position)
     {
-        const double position =
-            static_cast<double>(thermalIndex)
-            / 253.0;
+        const double clampedPosition =
+            std::clamp(position, 0.0, 1.0);
 
         for (qsizetype index = 1;
              index < static_cast<qsizetype>(InfernoStops.size());
@@ -50,7 +64,7 @@ namespace
             const PaletteStop &right =
                 InfernoStops[index];
 
-            if (position > right.position)
+            if (clampedPosition > right.position)
                 continue;
 
             const PaletteStop &left =
@@ -61,7 +75,7 @@ namespace
 
             const double localPosition =
                 span > 0.0
-                    ? (position - left.position) / span
+                    ? (clampedPosition - left.position) / span
                     : 0.0;
 
             const auto interpolate =
@@ -128,7 +142,10 @@ QVector<QRgb> ThermalImageProvider::createColorTable()
 
         // Protocol values 1..254 are the actual thermal ramp.
         colorTable.append(
-            sampleInfernoPalette(value - 1)
+            sampleInfernoPalette(
+                static_cast<double>(value - 1)
+                / 253.0
+            )
         );
     }
 
@@ -144,7 +161,8 @@ QVector<QRgb> ThermalImageProvider::createColorTable()
 
 void ThermalImageProvider::updateFrame(
     const QByteArray &pixels,
-    const FrameStatistics &statistics
+    const FrameStatistics &statistics,
+    quint8 quantizationMode
 )
 {
     if (pixels.size() != PixelCount)
@@ -159,6 +177,10 @@ void ThermalImageProvider::updateFrame(
 
         return;
     }
+
+    m_rawPixels = pixels;
+    m_statistics = statistics;
+    m_quantizationMode = quantizationMode;
 
     switch (m_scaleMode)
     {
@@ -309,31 +331,31 @@ QRgb ThermalImageProvider::smoothPixelColor(
             std::floor(sourceY)
         );
 
-    // Bicubic interpolation needs a 4 x 4 neighborhood.
-    // If that neighborhood touches a sentinel, do not blend it into fake heat.
+    // Bicubic interpolation needs a 4 x 4 raw-sensor neighborhood.
+    // If that neighborhood touches a sentinel, do not blend a label into heat.
     if (hasSentinelInBicubicNeighborhood(anchorX, anchorY))
     {
         // Nearest-neighbor keeps invalid/reserved pixels crisp and honest.
         return nearestSourceColor(sourceX, sourceY);
     }
 
-    // Bicubic returns a scalar palette index, not an RGB color.
+    // Bicubic returns a normalized scalar: 0.0 is display minimum, 1.0 maximum.
     const double sampledValue =
-        bicubicSample(sourceX, sourceY);
+        bicubicNormalizedSample(sourceX, sourceY);
 
-    // Clamp protects against small bicubic overshoots near strong edges.
-    const int paletteIndex =
+    // Clamp protects against small bicubic overshoots near strong thermal edges.
+    const double normalizedValue =
         std::clamp(
-            static_cast<int>(std::lround(sampledValue)),
-            1,
-            254
+            sampledValue,
+            0.0,
+            1.0
         );
 
-    // Colorize after interpolation, like imshow samples data then applies cmap.
-    return m_colorTable[paletteIndex];
+    // Colorize after scalar interpolation, matching Matplotlib's imshow flow.
+    return infernoColor(normalizedValue);
 }
 
-double ThermalImageProvider::bicubicSample(
+double ThermalImageProvider::bicubicNormalizedSample(
     double sourceX,
     double sourceY
 ) const
@@ -366,19 +388,19 @@ double ThermalImageProvider::bicubicSample(
     {
         // p0 is the sample one pixel before the anchor in this row.
         const double p0 =
-            sourcePixel(anchorX - 1, anchorY + rowOffset);
+            normalizedSourceValue(anchorX - 1, anchorY + rowOffset);
 
-        // p1 is the sample at the anchor in this row.
+        // p1 is the normalized sample at the anchor in this row.
         const double p1 =
-            sourcePixel(anchorX, anchorY + rowOffset);
+            normalizedSourceValue(anchorX, anchorY + rowOffset);
 
-        // p2 is the sample one pixel after the anchor in this row.
+        // p2 is the normalized sample one pixel after the anchor in this row.
         const double p2 =
-            sourcePixel(anchorX + 1, anchorY + rowOffset);
+            normalizedSourceValue(anchorX + 1, anchorY + rowOffset);
 
-        // p3 is the sample two pixels after the anchor in this row.
+        // p3 is the normalized sample two pixels after the anchor in this row.
         const double p3 =
-            sourcePixel(anchorX + 2, anchorY + rowOffset);
+            normalizedSourceValue(anchorX + 2, anchorY + rowOffset);
 
         // Store this row's interpolated value at the fractional x position.
         rowSamples[rowOffset + 1] =
@@ -432,18 +454,130 @@ double ThermalImageProvider::cubicInterpolate(
         );
 }
 
-uchar ThermalImageProvider::sourcePixel(int x, int y) const
+quint8 ThermalImageProvider::rawSourcePixel(int x, int y) const
 {
-    // Clamp x so edge pixels can still form a complete 4-sample cubic group.
+    // Clamp display-space x so border pixels can form a complete 4x4 group.
     const int clampedX =
         std::clamp(x, 0, ImageWidth - 1);
 
-    // Clamp y for the same reason at the top and bottom image borders.
+    // Clamp display-space y for the top and bottom image borders.
     const int clampedY =
         std::clamp(y, 0, ImageHeight - 1);
 
-    // Read the indexed thermal value from the native 32 x 24 source image.
-    return m_image.constScanLine(clampedY)[clampedX];
+    // The old display path flips horizontally while copying into m_image.
+    // Smooth reads the raw payload, so reproduce that same display orientation.
+    const int rawX =
+        ImageWidth - 1 - clampedX;
+
+    // Convert the two-dimensional sensor coordinate back to row-major offset.
+    const int rawIndex =
+        clampedY * ImageWidth + rawX;
+
+    // If no frame has arrived yet, show the below-range sentinel color.
+    if (m_rawPixels.size() != PixelCount)
+    {
+        return InvalidValue;
+    }
+
+    // Return the original byte from the sensor payload, before display mapping.
+    return static_cast<quint8>(
+        m_rawPixels[rawIndex]
+    );
+}
+
+double ThermalImageProvider::normalizedSourceValue(int x, int y) const
+{
+    // Read the raw thermal byte at this display-space source coordinate.
+    const quint8 rawValue =
+        rawSourcePixel(x, y);
+
+    // This function should only be called after sentinel-neighborhood checks.
+    // Keep the guard anyway so accidental sentinel reads become harmless edges.
+    if (
+        rawValue == InvalidValue
+        || rawValue == ReservedValue
+    )
+    {
+        return rawValue == ReservedValue
+            ? 1.0
+            : 0.0;
+    }
+
+    // Convert encoded sensor bytes to Celsius before normalizing the display.
+    const double temperatureCelsius =
+        ThermalQuantization::decodeTemperature(
+            rawValue,
+            m_quantizationMode
+        );
+
+    double displayMinimumCelsius =
+        ThermalQuantization::rangeForMode(
+            m_quantizationMode
+        ).minimumTemperatureC;
+
+    double displayMaximumCelsius =
+        ThermalQuantization::rangeForMode(
+            m_quantizationMode
+        ).maximumTemperatureC;
+
+    // Auto mode uses the current frame's real in-range min/max as vmin/vmax.
+    if (
+        m_scaleMode == FrameModel::ScaleMode::Auto
+        && m_statistics.inRangePixelCount > 0
+    )
+    {
+        displayMinimumCelsius =
+            m_statistics.minimumCelsius;
+
+        displayMaximumCelsius =
+            m_statistics.maximumCelsius;
+    }
+
+    // A flat frame has no contrast range, so place valid pixels in the middle.
+    if (qFuzzyCompare(displayMinimumCelsius, displayMaximumCelsius))
+    {
+        return 0.5;
+    }
+
+    // Matplotlib-style normalization: (value - vmin) / (vmax - vmin).
+    const double normalizedValue =
+        (
+            temperatureCelsius
+            - displayMinimumCelsius
+        )
+        / (
+            displayMaximumCelsius
+            - displayMinimumCelsius
+        );
+
+    // Clamp because raw mode can see values outside its visible display range.
+    return std::clamp(
+        normalizedValue,
+        0.0,
+        1.0
+    );
+}
+
+QRgb ThermalImageProvider::infernoColor(
+    double normalizedValue
+) const
+{
+    // Convert normalized 0.0..1.0 scalar position into a 256-entry LUT index.
+    const int colorIndex =
+        std::clamp(
+            static_cast<int>(
+                std::lround(
+                    std::clamp(normalizedValue, 0.0, 1.0)
+                    * 253.0
+                )
+            )
+            + 1,
+            1,
+            254
+        );
+
+    // The table reserves 0 and 255 for sentinel colors, so normal data uses 1..254.
+    return m_colorTable[colorIndex];
 }
 
 bool ThermalImageProvider::hasSentinelInBicubicNeighborhood(
@@ -458,8 +592,8 @@ bool ThermalImageProvider::hasSentinelInBicubicNeighborhood(
         for (int x = anchorX - 1; x <= anchorX + 2; ++x)
         {
             // Read with clamping so border neighborhoods are valid.
-            const uchar value =
-                sourcePixel(x, y);
+            const quint8 value =
+                rawSourcePixel(x, y);
 
             // Invalid and reserved values are labels, not temperatures.
             if (
@@ -493,12 +627,25 @@ QRgb ThermalImageProvider::nearestSourceColor(
             std::lround(sourceY)
         );
 
-    // Read the nearest scalar value, still clamped at image edges.
-    const uchar nearestValue =
-        sourcePixel(nearestX, nearestY);
+    // Read the nearest raw label/value, still clamped at image edges.
+    const quint8 nearestValue =
+        rawSourcePixel(nearestX, nearestY);
 
-    // Convert the nearest scalar value to its existing palette color.
-    return m_colorTable[nearestValue];
+    // Preserve below/above-range labels as their distinct display colors.
+    if (
+        nearestValue == InvalidValue
+        || nearestValue == ReservedValue
+    )
+    {
+        return m_colorTable[nearestValue];
+    }
+
+    // For normal thermal values, normalize Celsius and then colorize.
+    const double normalizedValue =
+        normalizedSourceValue(nearestX, nearestY);
+
+    // Return the inferno color for the nearest real thermal sample.
+    return infernoColor(normalizedValue);
 }
 
 void ThermalImageProvider::updateAutoFrame(
