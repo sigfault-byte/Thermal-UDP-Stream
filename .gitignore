@@ -6,6 +6,7 @@ firmware/hello_board/.cache/
 **/__pycache__/
 *.pyc
 .venv/
+/thermal_outputs/
 
 # macOS
 .DS_Store
